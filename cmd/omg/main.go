@@ -10,10 +10,14 @@ import (
 	"omg"
 )
 
-// Set filename
-const omgFileName = ".omg.json"
+// Default filename
+var omgFileName = ".omg.json"
 
 func main() {
+
+	if os.Getenv("ACC_FILENAME") != "" {
+		omgFileName = os.Getenv("ACC_FILENAME")
+	}
 
 	// Flag usage
 	flag.Usage = func() {
