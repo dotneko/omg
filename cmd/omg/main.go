@@ -14,6 +14,14 @@ import (
 const omgFileName = ".omg.json"
 
 func main() {
+
+	// Flag usage
+	flag.Usage = func() {
+		fmt.Fprintf(flag.CommandLine.Output(),
+			"%s tool. ", os.Args[0])
+		fmt.Fprintf(flag.CommandLine.Output(), "Usage infomation:\n")
+		flag.PrintDefaults()
+	}
 	// Parsing command line flags
 	add := flag.String("add", "", "Add [account_name] [address] to wallets list")
 	list := flag.Bool("list", false, "List all accounts")
@@ -47,8 +55,6 @@ func main() {
 			os.Exit(0)
 		}
 		address := tail[0]
-		fmt.Printf("Address for %q : ", address)
-
 		l.Add(*add, address)
 		// Save the new list
 		if err := l.Save(omgFileName); err != nil {
@@ -57,6 +63,6 @@ func main() {
 		}
 		fmt.Printf("Added %q, %q to wallets\n", *add, address)
 	default:
-		fmt.Printf("Received %d args; Args: %q\n", len(os.Args), os.Args[1:])
+		flag.Usage()
 	}
 }
