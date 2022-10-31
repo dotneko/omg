@@ -6,7 +6,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"testing"
 )
 
@@ -42,11 +41,12 @@ func TestOmgCLI(t *testing.T) {
 		t.Fatal(err)
 	}
 	cmdPath := filepath.Join(dir, binName)
-	aNameAddress := "Test1 Address1"
+	aName := "Test1"
+	aAddress := "Address1"
 
 	t.Run("AddNewAccount", func(t *testing.T) {
 
-		cmd := exec.Command(cmdPath, strings.Split("-add "+aNameAddress, " ")...)
+		cmd := exec.Command(cmdPath, "-add", aName, aAddress, " ")
 		if err := cmd.Run(); err != nil {
 			t.Fatal(err)
 		}
@@ -59,7 +59,7 @@ func TestOmgCLI(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		expected := aNameAddress + "\n"
+		expected := fmt.Sprintf("%2d: %s [%s]\n", 0, aName, aAddress)
 
 		if expected != string(out) {
 			t.Errorf("Expected %q, got %q instead\n", expected, string(out))

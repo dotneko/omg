@@ -40,14 +40,12 @@ func main() {
 	// Decide what to do based on number of arguments provided
 	switch {
 	case *list:
-		count := 0
-		for _, account := range *l {
-			fmt.Println(account.Name, account.Address)
-			count++
-		}
-		if count == 0 {
+		if len(*l) == 0 {
 			fmt.Println("No accounts in store")
+		} else {
+			fmt.Print(l)
 		}
+
 	case *add != "":
 		// Get 1st string of remaining arguments as address
 		if len(tail) == 0 {
