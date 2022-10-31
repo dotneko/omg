@@ -51,7 +51,7 @@ func TestOmgCLI(t *testing.T) {
   })
 
   t.Run("ListWallets", func(t *testing.T) {
-    cmd := exec.Command(cmdPath)
+    cmd := exec.Command(cmdPath,"list")
     out, err := cmd.CombinedOutput()
     if err != nil {
       t.Fatal(err)
