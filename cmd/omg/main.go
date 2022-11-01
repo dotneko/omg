@@ -119,7 +119,7 @@ func main() {
 	del := flag.String("del", "", "Delete [account_name] from list")
 	bal := flag.String("bal", "", "Check bank balance for [account_name]")
 	rewards := flag.String("rewards", "", "Check rewards for [account_name]")
-	wdall := flag.String("wdrd", "", "Withdraw all rewards for [account_name]")
+	wdall := flag.String("wdall", "", "Withdraw all rewards for [account_name]")
 	list := flag.Bool("list", false, "List all accounts")
 	flag.Parse()
 
