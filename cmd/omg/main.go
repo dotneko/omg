@@ -6,14 +6,26 @@ import (
 	"fmt"
 	"io"
 	"os"
-
-	//"strings"
+	"os/exec"
+	"strings"
 
 	"omg"
 )
 
-// Default filename
-var omgFileName = ".omg.json"
+// Project defaults
+var (
+	daemon      = "onomyd"
+	omgFileName = ".omg.json"
+	chainId     = "onomy-testnet-1"
+)
+
+const (
+	denom      = "anom"
+	jsonFlag   = "-o json"
+	defaultFee = 4998
+	gasAdjust  = 1.5
+	keyring    = "test"
+)
 
 func getNameAddress(r io.Reader, args ...string) (string, string, error) {
 	var name, address = "", ""
@@ -41,6 +53,54 @@ func getNameAddress(r io.Reader, args ...string) (string, string, error) {
 	address = s.Text()
 	return name, address, nil
 }
+
+// Check balance method
+func checkBalance(address string) {
+	cmdStr := fmt.Sprintf("query bank balances %s %s", jsonFlag, address)
+	cmd := exec.Command(daemon, strings.Split(cmdStr, " ")...)
+	// if err := cmd.Run(); err != nil {
+	// 	fmt.Fprintln(os.Stderr, err)
+	// }
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+	}
+	fmt.Println(string(out))
+
+}
+
+// Check reward method
+func checkRewards(address string) {
+	cmdStr := fmt.Sprintf("query distribution rewards %s", address)
+	cmd := exec.Command(daemon, strings.Split(cmdStr, " ")...)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+	}
+	fmt.Println(string(out))
+}
+
+// Withdraw all rewards method
+func withdrawRewards(name string) {
+
+	cmdStr := fmt.Sprintf("tx distribution withdraw-all-rewards --from %s", name)
+	cmdStr += fmt.Sprintf(" --fees %d%s --gas auto --gas-adjustment %f", defaultFee, denom, gasAdjust)
+	cmdStr += fmt.Sprintf(" --keyring-backend %s --chain-id %s", keyring, chainId)
+
+	fmt.Println(cmdStr)
+	cmd := exec.Command(daemon, strings.Split(cmdStr, " ")...)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+	}
+	// Parse output for error code
+	for _, line := range strings.Split(string(out), "\n") {
+		if strings.Contains(line, "Error") {
+			fmt.Fprintln(os.Stderr, line)
+		}
+	}
+}
+
 func main() {
 
 	if os.Getenv("OMG_FILENAME") != "" {
@@ -57,6 +117,9 @@ func main() {
 	// Parsing command line flags
 	add := flag.Bool("add", false, "Add [account_name] [address] to wallets list")
 	del := flag.String("del", "", "Delete [account_name] from list")
+	bal := flag.String("bal", "", "Check bank balance for [account_name]")
+	rewards := flag.String("rewards", "", "Check rewards for [account_name]")
+	wdall := flag.String("wdrd", "", "Withdraw all rewards for [account_name]")
 	list := flag.Bool("list", false, "List all accounts")
 	flag.Parse()
 
@@ -93,7 +156,7 @@ func main() {
 		}
 		if existingAddress != "" {
 			fmt.Printf("Aborting: %q already exists [%s]\n", name, existingAddress)
-			os.Exit(0)
+			os.Exit(1)
 		}
 		l.Add(name, address)
 		// Save the new list
@@ -119,6 +182,30 @@ func main() {
 		if !deleted {
 			fmt.Printf("%q not found.", *del)
 		}
+	case *rewards != "":
+		address := l.GetAddress(*rewards)
+		if address == "" {
+			fmt.Printf("Error: account %q not found.\n", *rewards)
+			os.Exit(1)
+		}
+		checkRewards(address)
+
+	case *bal != "":
+		address := l.GetAddress(*bal)
+		if address == "" {
+			fmt.Printf("Error: account %q not found.\n", *bal)
+			os.Exit(1)
+		}
+		checkBalance(address)
+
+	case *wdall != "":
+		address := l.GetAddress(*wdall)
+		if address == "" {
+			fmt.Printf("Error: account %q not found.\n", *wdall)
+			os.Exit(1)
+		}
+		withdrawRewards(*wdall)
+
 	default:
 		flag.Usage()
 	}

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	//  "time"
 )
 
 type Account struct {
@@ -45,6 +44,15 @@ func (l *Wallets) Delete(idx int) error {
 	*l = append(ls[:idx], ls[idx+1:]...)
 
 	return nil
+}
+
+func (l *Wallets) GetAddress(name string) string {
+	for _, a := range *l {
+		if name == a.Name {
+			return a.Address
+		}
+	}
+	return ""
 }
 
 // Save method encodes the Wallets list as JSON and saves it
