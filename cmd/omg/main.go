@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 
 	//"strings"
@@ -13,10 +15,36 @@ import (
 // Default filename
 var omgFileName = ".omg.json"
 
+func getNameAddress(r io.Reader, args ...string) (string, string, error) {
+	var name, address = "", ""
+	if len(args) >= 2 {
+		return args[0], args[1], nil
+	}
+	s := bufio.NewScanner(r)
+	fmt.Print("Enter acc name : ")
+	s.Scan()
+	if err := s.Err(); err != nil {
+		return "", "", err
+	}
+	if len(s.Text()) == 0 {
+		return "", "", fmt.Errorf("Name cannot be blank")
+	}
+	name = s.Text()
+	fmt.Print("Enter address  : ")
+	s.Scan()
+	if err := s.Err(); err != nil {
+		return "", "", err
+	}
+	if len(s.Text()) == 0 {
+		return "", "", fmt.Errorf("Address cannot be blank")
+	}
+	address = s.Text()
+	return name, address, nil
+}
 func main() {
 
-	if os.Getenv("ACC_FILENAME") != "" {
-		omgFileName = os.Getenv("ACC_FILENAME")
+	if os.Getenv("OMG_FILENAME") != "" {
+		omgFileName = os.Getenv("OMG_FILENAME")
 	}
 
 	// Flag usage
@@ -27,16 +55,15 @@ func main() {
 		flag.PrintDefaults()
 	}
 	// Parsing command line flags
-	add := flag.String("add", "", "Add [account_name] [address] to wallets list")
+	add := flag.Bool("add", false, "Add [account_name] [address] to wallets list")
 	list := flag.Bool("list", false, "List all accounts")
 	flag.Parse()
-	tail := flag.Args()
 
 	// Define an wallet list
 	l := &omg.Wallets{}
 
 	// Read items from file
-	if err := l.Get(omgFileName); err != nil {
+	if err := l.Load(omgFileName); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
@@ -50,20 +77,20 @@ func main() {
 			fmt.Print(l)
 		}
 
-	case *add != "":
-		// Get 1st string of remaining arguments as address
-		if len(tail) == 0 {
-			fmt.Println("Error: no address entered")
-			os.Exit(0)
+	case *add:
+		name, address, err := getNameAddress(os.Stdin, flag.Args()...)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
 		}
-		address := tail[0]
-		l.Add(*add, address)
+		l.Add(name, address)
+
 		// Save the new list
 		if err := l.Save(omgFileName); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		fmt.Printf("Added %q, %q to wallets\n", *add, address)
+		fmt.Printf("Added %q, %q to wallets\n", name, address)
 	default:
 		flag.Usage()
 	}

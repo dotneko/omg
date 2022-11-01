@@ -57,7 +57,7 @@ func (l *Wallets) Save(filename string) error {
 }
 
 // Get method opens the provided filename, decodes JSON and parses it to list
-func (l *Wallets) Get(filename string) error {
+func (l *Wallets) Load(filename string) error {
 	file, err := os.ReadFile(filename)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {

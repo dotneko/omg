@@ -2,6 +2,7 @@ package main_test
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -34,22 +35,40 @@ func TestMain(m *testing.M) {
 }
 
 func TestOmgCLI(t *testing.T) {
-	//a := omg.Account{Name: "Test1", Address: "Address1"}
 
 	dir, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
 	}
 	cmdPath := filepath.Join(dir, binName)
-	aName := "Test1"
-	aAddress := "Address1"
+	aName1 := "Test1"
+	aAddress1 := "TestAddress1"
 
-	t.Run("AddNewAccount", func(t *testing.T) {
+	t.Run("AddNewAccountFromArguments", func(t *testing.T) {
 
-		cmd := exec.Command(cmdPath, "-add", aName, aAddress, " ")
+		cmd := exec.Command(cmdPath, "-add", aName1, aAddress1)
 		if err := cmd.Run(); err != nil {
 			t.Fatal(err)
 		}
+	})
+
+	aName2 := "Test2"
+	aAddress2 := "TestAddress2"
+
+	t.Run("AddNewAccountFromSTDIN", func(t *testing.T) {
+		cmd := exec.Command(cmdPath, "-add")
+		cmdStdin, err := cmd.StdinPipe()
+		if err != nil {
+			t.Fatal(err)
+		}
+		io.WriteString(cmdStdin, aName2+"\n")
+		io.WriteString(cmdStdin, aAddress2+"\n")
+		cmdStdin.Close()
+
+		if err := cmd.Run(); err != nil {
+			t.Fatal(err)
+		}
+
 	})
 
 	t.Run("ListWallets", func(t *testing.T) {
@@ -59,7 +78,7 @@ func TestOmgCLI(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		expected := fmt.Sprintf("%2d: %s [%s]\n", 0, aName, aAddress)
+		expected := fmt.Sprintf("%2d: %s [%s]\n%2d: %s [%s]\n", 0, aName1, aAddress1, 1, aName2, aAddress2)
 
 		if expected != string(out) {
 			t.Errorf("Expected %q, got %q instead\n", expected, string(out))
