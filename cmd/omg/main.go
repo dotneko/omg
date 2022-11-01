@@ -56,6 +56,7 @@ func main() {
 	}
 	// Parsing command line flags
 	add := flag.Bool("add", false, "Add [account_name] [address] to wallets list")
+	del := flag.String("del", "", "Delete [account_name] from list")
 	list := flag.Bool("list", false, "List all accounts")
 	flag.Parse()
 
@@ -83,14 +84,41 @@ func main() {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
+		// Check if name exists
+		existingAddress := ""
+		for _, a := range *l {
+			if a.Name == name {
+				existingAddress = a.Address
+			}
+		}
+		if existingAddress != "" {
+			fmt.Printf("Aborting: %q already exists [%s]\n", name, existingAddress)
+			os.Exit(0)
+		}
 		l.Add(name, address)
-
 		// Save the new list
 		if err := l.Save(omgFileName); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 		fmt.Printf("Added %q, %q to wallets\n", name, address)
+
+	case *del != "":
+		deleted := false
+		for k, a := range *l {
+			if *del == a.Name {
+				l.Delete(k)
+				if err := l.Save(omgFileName); err != nil {
+					fmt.Fprintln(os.Stderr, err)
+					os.Exit(1)
+				}
+				fmt.Printf("Deleted: %q [%q]\n", a.Name, a.Address)
+				deleted = true
+			}
+		}
+		if !deleted {
+			fmt.Printf("%q not found.", *del)
+		}
 	default:
 		flag.Usage()
 	}

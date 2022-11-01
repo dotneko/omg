@@ -38,11 +38,11 @@ func (l *Wallets) Add(name string, address string) {
 // Delete method deletes an account from the list
 func (l *Wallets) Delete(idx int) error {
 	ls := *l
-	if idx <= 0 || idx > len(ls) {
+	if idx < 0 || idx >= len(ls) {
 		return fmt.Errorf("Account at index %d does not exist", idx)
 	}
 	// Adjusting index for 0 based index
-	*l = append(ls[:idx-1], ls[idx:]...)
+	*l = append(ls[:idx], ls[idx+1:]...)
 
 	return nil
 }

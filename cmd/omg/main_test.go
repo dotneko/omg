@@ -84,4 +84,17 @@ func TestOmgCLI(t *testing.T) {
 			t.Errorf("Expected %q, got %q instead\n", expected, string(out))
 		}
 	})
+
+	t.Run("DeleteAccount", func(t *testing.T) {
+		cmd := exec.Command(cmdPath, "-del", aName1)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatal(err)
+		}
+		expected := fmt.Sprintf("Deleted: %q [%q]\n", aName1, aAddress1)
+
+		if expected != string(out) {
+			t.Errorf("expected %q, got %q instead\n", expected, string(out))
+		}
+	})
 }
