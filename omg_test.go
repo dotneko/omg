@@ -7,6 +7,34 @@ import (
 	"omg"
 )
 
+func TestAddressTypes(t *testing.T) {
+	normalAddress := "onomy123456890111111111111111111111111111111"
+	validatorAddress := "onomyvaloper12345689011111111111111111111111"
+	invalidAddress := "cosmosnotavalidaddress0000000000000000000000"
+	type typeTest struct {
+		address string
+		isNormal bool
+		isValidator bool
+		isValid bool
+	}
+	var typeTests = []typeTest{
+		typeTest{normalAddress, true, false, true},
+		typeTest{validatorAddress, false, true, true},
+		typeTest{invalidAddress, false, false, false},
+	}
+	for _, test := range typeTests {
+		if omg.IsNormalAddress(test.address) != test.isNormal {
+			t.Errorf("Expected %q isNormal = %t", test.address, test.isNormal)
+		}
+		if omg.IsValidatorAddress(test.address) != test.isValidator {
+			t.Errorf("Expected %q isValidator = %t", test.address, test.isValidator)
+		}
+		if omg.IsValidAddress(test.address) != test.isValid {
+			t.Errorf("Expected %q isValid = %t", test.address, test.isValid)
+		}
+	}
+}
+
 func TestAdd(t *testing.T) {
 	l := omg.Wallets{}
 

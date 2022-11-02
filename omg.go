@@ -14,12 +14,34 @@ type Account struct {
 
 type Wallets []Account
 
+// Checks if address is a validator account
+func IsValidatorAddress(address string) bool {
+	if address[:12] == "onomyvaloper" {
+		return true
+	}
+	return false
+}
+
+// Checks if address is a wallet account
+func IsNormalAddress(address string) bool {
+	if address[:5] == "onomy" && address[5:12] != "valoper" {
+		return true
+	}
+	return false
+}
+// Checks if address is valid
+func IsValidAddress(address string) bool {
+	if !IsNormalAddress(address) && !IsValidatorAddress(address) {
+		return false
+	}
+	return true
+}
 // String prints out a formatted list
 // Implements the fmt.Stringer interface
 func (l *Wallets) String() string {
 	formatted := ""
 	for k, a := range *l {
-		formatted += fmt.Sprintf("%2d: %s [%s]\n", k, a.Name, a.Address)
+		formatted += fmt.Sprintf("%2d: %10s [%s]\n", k, a.Name, a.Address)
 	}
 	return formatted
 }
