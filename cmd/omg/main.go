@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	//"bytes"
 	"flag"
 	"fmt"
 	"io"
@@ -81,24 +82,61 @@ func checkRewards(address string) {
 }
 
 // Withdraw all rewards method
-func withdrawRewards(name string) {
+func withdrawRewards(name string, auto bool) {
 
 	cmdStr := fmt.Sprintf("tx distribution withdraw-all-rewards --from %s", name)
 	cmdStr += fmt.Sprintf(" --fees %d%s --gas auto --gas-adjustment %f", defaultFee, denom, gasAdjust)
 	cmdStr += fmt.Sprintf(" --keyring-backend %s --chain-id %s", keyring, chainId)
 
-	fmt.Println(cmdStr)
+	fmt.Printf("Executing: %s %s\n", daemon, cmdStr)
 	cmd := exec.Command(daemon, strings.Split(cmdStr, " ")...)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-	}
-	// Parse output for error code
-	for _, line := range strings.Split(string(out), "\n") {
-		if strings.Contains(line, "Error") {
-			fmt.Fprintln(os.Stderr, line)
+
+	if auto == true {
+		// Auto confirm transaction
+		stdin, err := cmd.StdinPipe()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
 		}
+		// stdout, err := cmd.StdoutPipe()
+		// if err != nil {
+		// 	fmt.Fprintln(os.Stderr, err)
+		// }
+		// buf := bytes.NewBuffer(nil)
+		// read stdout continuously in a separate go routine
+		// go func() {
+		// 	io.Copy(buf, stdout)
+		// 	fmt.Fprint(os.Stdout, buf)
+		// }()
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Start(); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+		// Expect prompt to confirm with 'y'
+		// Note need to fix missing output before the confirmation prompt
+		stdin.Write([]byte("y\n"))
+		//fmt.Fprint(os.Stdout, buf)
+		// Parse output for error code
+		// for _, line := range strings.Split(string(out), "\n") {
+		// 	if strings.Contains(line, "Error") {
+		// 		fmt.Fprintln(os.Stderr, line)
+		// 	}
+		// }
+		if err := cmd.Wait(); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+		//fmt.Fprint(os.Stdout, buf)
+	} else {
+		// Interactive
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+		fmt.Println("Done.")
 	}
+	
 }
 
 func main() {
@@ -116,10 +154,11 @@ func main() {
 	}
 	// Parsing command line flags
 	add := flag.Bool("add", false, "Add [account_name] [address] to wallets list")
+	auto := flag.Bool("auto", false, "Auto confirm transactions")
 	del := flag.String("del", "", "Delete [account_name] from list")
 	bal := flag.String("bal", "", "Check bank balance for [account_name]")
 	rewards := flag.String("rewards", "", "Check rewards for [account_name]")
-	wdall := flag.String("wdall", "", "Withdraw all rewards for [account_name]")
+	txwd := flag.String("txwd", "", "Withdraw all rewards for [account_name]")
 	list := flag.Bool("list", false, "List all accounts")
 	flag.Parse()
 
@@ -198,13 +237,13 @@ func main() {
 		}
 		checkBalance(address)
 
-	case *wdall != "":
-		address := l.GetAddress(*wdall)
+	case *txwd != "":
+		address := l.GetAddress(*txwd)
 		if address == "" {
-			fmt.Printf("Error: account %q not found.\n", *wdall)
+			fmt.Printf("Error: account %q not found.\n", *txwd)
 			os.Exit(1)
 		}
-		withdrawRewards(*wdall)
+		withdrawRewards(*txwd, *auto)
 
 	default:
 		flag.Usage()
