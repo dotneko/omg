@@ -2,12 +2,15 @@ package main
 
 import (
 	"bufio"
-	//"bytes"
+	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 
 	"omg"
@@ -27,6 +30,32 @@ const (
 	gasAdjust  = 1.5
 	keyring    = "test"
 )
+
+// Types for JSON unmarshalling
+type BalancesQuery struct {
+	Balances   []DenomAmount
+	Pagination PaginationStruct
+}
+
+type RewardsQuery struct {
+	Rewards []ValidatorReward
+	Total   []DenomAmount
+}
+
+type ValidatorReward struct {
+	ValidatorAddress string `json:"validator_address"`
+	Reward           []DenomAmount
+}
+
+type DenomAmount struct {
+	Denom  string
+	Amount string
+}
+
+type PaginationStruct struct {
+	NextKey string `json:"next_key"`
+	Total   string
+}
 
 func getNameAddress(r io.Reader, args ...string) (string, string, error) {
 	var name, address = "", ""
@@ -55,30 +84,69 @@ func getNameAddress(r io.Reader, args ...string) (string, string, error) {
 	return name, address, nil
 }
 
+// Convert anom to nom amount
+func simplifyAmount(amt float64) float64 {
+	return float64(amt) / math.Pow10(18)
+}
+
+func floatAmount(amtstr string) (float64, error) {
+	amt, err := strconv.ParseFloat(amtstr, 64)
+	if err != nil {
+		return -1, err
+	}
+	return amt, nil
+}
+
+// Parse balance
+func getBalance(address string) (float64, error) {
+	cmdStr := fmt.Sprintf("query bank balances %s %s", jsonFlag, address)
+	out, err := exec.Command(daemon, strings.Split(cmdStr, " ")...).Output()
+	if err != nil {
+		return 0, err
+	}
+	if !json.Valid(out) {
+		return 0, errors.New("Invalid json")
+	}
+	var b BalancesQuery
+	if err = json.Unmarshal(out, &b); err != nil {
+		return 0, err
+	}
+	balance, err := strconv.ParseFloat(b.Balances[0].Amount, 64)
+	if err != nil {
+		return 0, err
+	}
+	return balance, nil
+}
+
 // Check balance method
 func checkBalance(address string) {
-	cmdStr := fmt.Sprintf("query bank balances %s %s", jsonFlag, address)
-	cmd := exec.Command(daemon, strings.Split(cmdStr, " ")...)
-	// if err := cmd.Run(); err != nil {
-	// 	fmt.Fprintln(os.Stderr, err)
-	// }
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-	}
-	fmt.Println(string(out))
-
+	balance, _ := getBalance(address)
+	fmt.Printf("Balance: %.18fnom\n", simplifyAmount(balance))
 }
 
 // Check reward method
 func checkRewards(address string) {
-	cmdStr := fmt.Sprintf("query distribution rewards %s", address)
-	cmd := exec.Command(daemon, strings.Split(cmdStr, " ")...)
-	out, err := cmd.CombinedOutput()
+	cmdStr := fmt.Sprintf("query distribution rewards %s %s", jsonFlag, address)
+
+	out, err := exec.Command(daemon, strings.Split(cmdStr, " ")...).Output()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Println(err)
+		return
 	}
-	fmt.Println(string(out))
+	if !json.Valid(out) {
+		fmt.Println("Invalid json")
+	}
+	var r RewardsQuery
+	if err = json.Unmarshal(out, &r); err != nil {
+		fmt.Println(err)
+	}
+	for _, v := range r.Rewards {
+		amt, err := floatAmount(v.Reward[0].Amount)
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Printf("%s - %.18fnom\n", v.ValidatorAddress, simplifyAmount(amt))
+	}
 }
 
 // Withdraw all rewards method
@@ -91,52 +159,107 @@ func withdrawRewards(name string, auto bool) {
 	fmt.Printf("Executing: %s %s\n", daemon, cmdStr)
 	cmd := exec.Command(daemon, strings.Split(cmdStr, " ")...)
 
-	if auto == true {
+	if auto {
 		// Auto confirm transaction
 		stdin, err := cmd.StdinPipe()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 		}
-		// stdout, err := cmd.StdoutPipe()
-		// if err != nil {
-		// 	fmt.Fprintln(os.Stderr, err)
-		// }
-		// buf := bytes.NewBuffer(nil)
-		// read stdout continuously in a separate go routine
-		// go func() {
-		// 	io.Copy(buf, stdout)
-		// 	fmt.Fprint(os.Stdout, buf)
-		// }()
+
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Start(); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 		}
-		// Expect prompt to confirm with 'y'
-		// Note need to fix missing output before the confirmation prompt
+		// Expect prompt and confirm with 'y'
 		stdin.Write([]byte("y\n"))
-		//fmt.Fprint(os.Stdout, buf)
-		// Parse output for error code
-		// for _, line := range strings.Split(string(out), "\n") {
-		// 	if strings.Contains(line, "Error") {
-		// 		fmt.Fprintln(os.Stderr, line)
-		// 	}
-		// }
+
 		if err := cmd.Wait(); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 		}
-		//fmt.Fprint(os.Stdout, buf)
 	} else {
-		// Interactive
+		// Interactive execution
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Run(); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 		}
-		fmt.Println("Done.")
 	}
-	
+
+}
+
+// Get delegator and validator from args or stdin
+func getDelegatorValidator(r io.Reader, args ...string) (string, string, error) {
+	var (
+		delegator string = ""
+		validator string = ""
+	)
+	if len(args) >= 2 {
+		delegator = args[0]
+		validator = args[1]
+	}
+
+	s := bufio.NewScanner(r)
+	// Get delegator input if no argument provided
+	if delegator == "" {
+		fmt.Print("Enter wallet to delegate from : ")
+		s.Scan()
+		if err := s.Err(); err != nil {
+			return "", "", err
+		}
+		if len(s.Text()) == 0 {
+			return "", "", fmt.Errorf("Name cannot be blank\n")
+		}
+		delegator = s.Text()
+	}
+	if validator == "" {
+		fmt.Print("Enter validator to delegate to : ")
+		s.Scan()
+		if err := s.Err(); err != nil {
+			return "", "", err
+		}
+		if len(s.Text()) == 0 {
+			return "", "", fmt.Errorf("Validator cannot be blank\n")
+		}
+		validator = s.Text()
+	}
+	return delegator, validator, nil
+}
+
+// Get amount from stdin
+func getDelegationAmount(r io.Reader, balance float64, args ...string) (float64, error) {
+	var amount float64 = 0.0
+	if len(flag.Args()) == 3 {
+		amount, err := strconv.ParseFloat(flag.Args()[2], 64)
+		if err != nil {
+			fmt.Println(err)
+		}
+		return amount, nil
+	}
+	s := bufio.NewScanner(r)
+	fmt.Printf("Enter amount to delegate [%s] : ", denom)
+	s.Scan()
+	if err := s.Err(); err != nil {
+		return 0.0, err
+	}
+	if len(s.Text()) == 0 {
+		return 0.0, fmt.Errorf("Invalid amount")
+	}
+	amount, err := strconv.ParseFloat(s.Text(), 64)
+	if err != nil {
+		return 0.0, err
+	}
+	if amount <= 0.0 || amount > balance {
+		return 0.0, fmt.Errorf("Invalid amount %f", amount)
+	}
+	return amount, nil
+}
+
+// Delegate to validator method
+func delegateToValidator(delegator string, validator string, amount float64, auto bool) {
+
+	fmt.Printf("DelegateToValidator %s %s %f %t\n", delegator, validator, amount, auto)
 }
 
 func main() {
@@ -155,11 +278,13 @@ func main() {
 	// Parsing command line flags
 	add := flag.Bool("add", false, "Add [account_name] [address] to wallets list")
 	auto := flag.Bool("auto", false, "Auto confirm transactions")
-	del := flag.String("del", "", "Delete [account_name] from list")
-	bal := flag.String("bal", "", "Check bank balance for [account_name]")
-	rewards := flag.String("rewards", "", "Check rewards for [account_name]")
-	txwd := flag.String("txwd", "", "Withdraw all rewards for [account_name]")
+	balance := flag.String("balance", "", "Check bank balance for [account_name]")
+	delegate := flag.Bool("delegate", false, "Delegate from [account_name] to [validator]")
 	list := flag.Bool("list", false, "List all accounts")
+	rewards := flag.String("rewards", "", "Check rewards for [account_name]")
+	rm := flag.String("rm", "", "Remove [account_name] from list")
+	wdall := flag.String("wdall", "", "Withdraw all rewards for [account_name]")
+
 	flag.Parse()
 
 	// Define an wallet list
@@ -173,12 +298,6 @@ func main() {
 
 	// Decide what to do based on number of arguments provided
 	switch {
-	case *list:
-		if len(*l) == 0 {
-			fmt.Println("No accounts in store")
-		} else {
-			fmt.Print(l)
-		}
 
 	case *add:
 		name, address, err := getNameAddress(os.Stdin, flag.Args()...)
@@ -205,10 +324,67 @@ func main() {
 		}
 		fmt.Printf("Added %q, %q to wallets\n", name, address)
 
-	case *del != "":
+	case *balance != "":
+		address := l.GetAddress(*balance)
+		if address == "" {
+			fmt.Printf("Error: account %q not found.\n", *balance)
+			os.Exit(1)
+		}
+		checkBalance(address)
+
+	case *delegate:
+		delegator, validator, err := getDelegatorValidator(os.Stdin, flag.Args()...)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		// Check if delegator in list and is not validator account
+		delegatorAddress := l.GetAddress(delegator)
+		if !omg.IsNormalAddress(delegatorAddress) {
+			fmt.Errorf("Invalid delegator wallet: %s\n", delegatorAddress)
+			os.Exit(1)
+		}
+		// Check if valid validator address
+		valAddress := l.GetAddress(validator)
+		if valAddress == "" {
+			fmt.Errorf("Address not in list\n")
+			os.Exit(1)
+		}
+		if !omg.IsValidatorAddress(valAddress) {
+			fmt.Errorf("%q is not a validator address\n", valAddress)
+			os.Exit(1)
+		}
+		// Check balance for delegator
+		balance, err := getBalance(delegatorAddress)
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Printf("Delegator %s[%s] balance = %fanom\n", delegator, delegatorAddress, balance)
+		amount, err := getDelegationAmount(os.Stdin, balance, flag.Args()...)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		delegateToValidator(delegator, valAddress, amount, *auto)
+	case *list:
+		if len(*l) == 0 {
+			fmt.Println("No accounts in store")
+		} else {
+			fmt.Print(l)
+		}
+
+	case *rewards != "":
+		address := l.GetAddress(*rewards)
+		if address == "" {
+			fmt.Printf("Error: account %q not found.\n", *rewards)
+			os.Exit(1)
+		}
+		checkRewards(address)
+
+	case *rm != "":
 		deleted := false
 		for k, a := range *l {
-			if *del == a.Name {
+			if *rm == a.Name {
 				l.Delete(k)
 				if err := l.Save(omgFileName); err != nil {
 					fmt.Fprintln(os.Stderr, err)
@@ -219,31 +395,16 @@ func main() {
 			}
 		}
 		if !deleted {
-			fmt.Printf("%q not found.", *del)
+			fmt.Printf("%q not found.", *rm)
 		}
-	case *rewards != "":
-		address := l.GetAddress(*rewards)
-		if address == "" {
-			fmt.Printf("Error: account %q not found.\n", *rewards)
-			os.Exit(1)
-		}
-		checkRewards(address)
 
-	case *bal != "":
-		address := l.GetAddress(*bal)
+	case *wdall != "":
+		address := l.GetAddress(*wdall)
 		if address == "" {
-			fmt.Printf("Error: account %q not found.\n", *bal)
+			fmt.Printf("Error: account %q not found.\n", *wdall)
 			os.Exit(1)
 		}
-		checkBalance(address)
-
-	case *txwd != "":
-		address := l.GetAddress(*txwd)
-		if address == "" {
-			fmt.Printf("Error: account %q not found.\n", *txwd)
-			os.Exit(1)
-		}
-		withdrawRewards(*txwd, *auto)
+		withdrawRewards(*wdall, *auto)
 
 	default:
 		flag.Usage()
