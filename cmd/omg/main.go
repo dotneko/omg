@@ -256,13 +256,15 @@ func getDelegationAmount(r io.Reader, address string, args ...string) (float64, 
 	if len(s.Text()) == 0 {
 		return 0.0, fmt.Errorf("Invalid amount")
 	}
+
 	tokenAmt, err := strconv.ParseFloat(s.Text(), 64)
 	if err != nil {
 		return 0, err
 	}
-	if tokenAmt == 0.0 {
-		return 0.0, fmt.Errorf("Invalid amount %f", amount)
-	} else if amount < 0 {
+	if tokenAmt == 0 {
+		return 0, fmt.Errorf("Invalid amount %f", amount)
+	} 
+	if tokenAmt < 0 {
 		// Negative amounts represent approx remaining amount after delegation
 		balance, err := getBalance(address)
 		if err != nil {
@@ -272,14 +274,15 @@ func getDelegationAmount(r io.Reader, address string, args ...string) (float64, 
 		if amount <= 0 {
 			return 0, fmt.Errorf("Insufficient balance")
 		}
-	} 
+		return amount, nil
+	}
 	amount = tokenToDenom(tokenAmt)
 	return amount, nil
 }
 
 // Delegate to validator method
 func delegateToValidator(delegator string, valAddress string, amount float64, auto bool) {
-	fmt.Printf("DelegateToValidator %s %s %s %t\n", delegator, valAddress, denomToStr(amount), auto)
+	// fmt.Printf("DelegateToValidator %s %s %s %t\n", delegator, valAddress, denomToStr(amount), auto)
 
 	cmdStr := fmt.Sprintf("tx staking delegate %s %s --from %s", valAddress, denomToStr(amount), delegator)
 	cmdStr += fmt.Sprintf(" --fees %d%s --gas auto --gas-adjustment %f", defaultFee, denom, gasAdjust)
