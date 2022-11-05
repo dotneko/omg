@@ -25,6 +25,8 @@ var (
 
 const (
 	denom      = "anom"
+	token      = "nom"
+	decimals   = 18
 	jsonFlag   = "-o json"
 	defaultFee = 4998
 	gasAdjust  = 1.5
@@ -84,12 +86,19 @@ func getNameAddress(r io.Reader, args ...string) (string, string, error) {
 	return name, address, nil
 }
 
-// Convert anom to nom amount
-func simplifyAmount(amt float64) float64 {
-	return float64(amt) / math.Pow10(18)
+// Convert denom to token amount
+func denomToToken(amt float64) float64 {
+	return amt / math.Pow10(decimals)
 }
 
-func floatAmount(amtstr string) (float64, error) {
+func denomToStr(amt float64) string {
+	return fmt.Sprintf("%.0f%s", amt, denom)
+}
+func tokenToDenom(amt float64) float64 {
+	return amt * math.Pow10(decimals)
+}
+
+func strToFloat(amtstr string) (float64, error) {
 	amt, err := strconv.ParseFloat(amtstr, 64)
 	if err != nil {
 		return -1, err
@@ -121,7 +130,7 @@ func getBalance(address string) (float64, error) {
 // Check balance method
 func checkBalance(address string) {
 	balance, _ := getBalance(address)
-	fmt.Printf("Balance: %.18fnom\n", simplifyAmount(balance))
+	fmt.Printf("Balance = %.0f anom (%8.5f nom)\n", balance, denomToToken(balance))
 }
 
 // Check reward method
@@ -141,11 +150,11 @@ func checkRewards(address string) {
 		fmt.Println(err)
 	}
 	for _, v := range r.Rewards {
-		amt, err := floatAmount(v.Reward[0].Amount)
+		amt, err := strToFloat(v.Reward[0].Amount)
 		if err != nil {
 			fmt.Println(err)
 		}
-		fmt.Printf("%s - %.18fnom\n", v.ValidatorAddress, simplifyAmount(amt))
+		fmt.Printf("%s - %8.5f nom\n", v.ValidatorAddress, denomToToken(amt))
 	}
 }
 
@@ -228,7 +237,7 @@ func getDelegatorValidator(r io.Reader, args ...string) (string, string, error) 
 }
 
 // Get amount from stdin
-func getDelegationAmount(r io.Reader, balance float64, args ...string) (float64, error) {
+func getDelegationAmount(r io.Reader, address string, args ...string) (float64, error) {
 	var amount float64 = 0.0
 	if len(flag.Args()) == 3 {
 		amount, err := strconv.ParseFloat(flag.Args()[2], 64)
@@ -238,28 +247,74 @@ func getDelegationAmount(r io.Reader, balance float64, args ...string) (float64,
 		return amount, nil
 	}
 	s := bufio.NewScanner(r)
-	fmt.Printf("Enter amount to delegate [%s] : ", denom)
+	fmt.Printf("Enter amount to delegate [%s] : ", token)
+
 	s.Scan()
 	if err := s.Err(); err != nil {
-		return 0.0, err
+		return 0, err
 	}
 	if len(s.Text()) == 0 {
 		return 0.0, fmt.Errorf("Invalid amount")
 	}
-	amount, err := strconv.ParseFloat(s.Text(), 64)
+	tokenAmt, err := strconv.ParseFloat(s.Text(), 64)
 	if err != nil {
-		return 0.0, err
+		return 0, err
 	}
-	if amount <= 0.0 || amount > balance {
+	if tokenAmt == 0.0 {
 		return 0.0, fmt.Errorf("Invalid amount %f", amount)
-	}
+	} else if amount < 0 {
+		// Negative amounts represent approx remaining amount after delegation
+		balance, err := getBalance(address)
+		if err != nil {
+			return 0, err
+		}
+		amount = balance + tokenToDenom(tokenAmt)
+		if amount <= 0 {
+			return 0, fmt.Errorf("Insufficient balance")
+		}
+	} 
+	amount = tokenToDenom(tokenAmt)
 	return amount, nil
 }
 
 // Delegate to validator method
-func delegateToValidator(delegator string, validator string, amount float64, auto bool) {
+func delegateToValidator(delegator string, valAddress string, amount float64, auto bool) {
+	fmt.Printf("DelegateToValidator %s %s %s %t\n", delegator, valAddress, denomToStr(amount), auto)
 
-	fmt.Printf("DelegateToValidator %s %s %f %t\n", delegator, validator, amount, auto)
+	cmdStr := fmt.Sprintf("tx staking delegate %s %s --from %s", valAddress, denomToStr(amount), delegator)
+	cmdStr += fmt.Sprintf(" --fees %d%s --gas auto --gas-adjustment %f", defaultFee, denom, gasAdjust)
+	cmdStr += fmt.Sprintf(" --keyring-backend %s --chain-id %s", keyring, chainId)
+
+	fmt.Printf("Executing: %s %s\n", daemon, cmdStr)
+	cmd := exec.Command(daemon, strings.Split(cmdStr, " ")...)
+
+	if auto {
+		// Auto confirm transaction
+		stdin, err := cmd.StdinPipe()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Start(); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+		// Expect prompt and confirm with 'y'
+		stdin.Write([]byte("y\n"))
+
+		if err := cmd.Wait(); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+	} else {
+		// Interactive execution
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+	}
 }
 
 func main() {
@@ -355,12 +410,10 @@ func main() {
 			os.Exit(1)
 		}
 		// Check balance for delegator
-		balance, err := getBalance(delegatorAddress)
-		if err != nil {
-			fmt.Println(err)
-		}
-		fmt.Printf("Delegator %s[%s] balance = %fanom\n", delegator, delegatorAddress, balance)
-		amount, err := getDelegationAmount(os.Stdin, balance, flag.Args()...)
+		fmt.Printf("Delegator %s [%s]\n", delegator, delegatorAddress)
+		checkBalance(delegatorAddress)
+		
+		amount, err := getDelegationAmount(os.Stdin, delegatorAddress, flag.Args()...)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)

@@ -29,6 +29,7 @@ func IsNormalAddress(address string) bool {
 	}
 	return false
 }
+
 // Checks if address is valid
 func IsValidAddress(address string) bool {
 	if !IsNormalAddress(address) && !IsValidatorAddress(address) {
@@ -36,6 +37,7 @@ func IsValidAddress(address string) bool {
 	}
 	return true
 }
+
 // String prints out a formatted list
 // Implements the fmt.Stringer interface
 func (l *Wallets) String() string {

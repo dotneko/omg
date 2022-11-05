@@ -12,10 +12,10 @@ func TestAddressTypes(t *testing.T) {
 	validatorAddress := "onomyvaloper12345689011111111111111111111111"
 	invalidAddress := "cosmosnotavalidaddress0000000000000000000000"
 	type typeTest struct {
-		address string
-		isNormal bool
+		address     string
+		isNormal    bool
 		isValidator bool
-		isValid bool
+		isValid     bool
 	}
 	var typeTests = []typeTest{
 		typeTest{normalAddress, true, false, true},
