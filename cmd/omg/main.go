@@ -239,10 +239,44 @@ func getDelegatorValidator(r io.Reader, args ...string) (string, string, error) 
 // Get amount from stdin
 func getDelegationAmount(r io.Reader, address string, args ...string) (float64, error) {
 	var amount float64 = 0.0
+	balance, _ := getBalance(address)
 	if len(flag.Args()) == 3 {
+		// Check if denom appended
+		argStr := flag.Args()[2]
+		if len(argStr) > 5 && argStr[len(argStr)-4:] == denom {
+			amount, err := strconv.ParseFloat(argStr[:len(argStr)-4], 64)
+			if err != nil {
+				return 0, err
+			}
+			fmt.Printf("Requested %.0f%s\n", amount,denom)
+			if amount < 0 {
+				// Negative amounts represent approx remaining amount after delegation
+				if -amount > balance {
+					return 0, fmt.Errorf("Error: insufficent funds (requested %.0f%s", amount+balance, denom)
+				}
+				return amount + balance, nil
+				
+			}
+			if amount < 0 || amount > balance {
+				return 0, fmt.Errorf("Error: insufficient funds (requested %.0f%s)", amount, denom)
+			}
+			return amount, nil
+		}
+		// If denom not included, treat as token amount
 		amount, err := strconv.ParseFloat(flag.Args()[2], 64)
 		if err != nil {
 			fmt.Println(err)
+		}
+		amount = tokenToDenom(amount)
+		if amount < 0 {
+			// Negative amounts represent approx remaining amount after delegation
+			if -amount > balance {
+				return 0, fmt.Errorf("Error: insufficient funds (requested %.0f%s)", amount, denom)
+			}
+			return balance + amount, nil
+		}
+		if amount > balance {
+			return 0, fmt.Errorf("Error: insufficient funds (requested %.0f%s)", amount, denom)
 		}
 		return amount, nil
 	}
@@ -272,7 +306,7 @@ func getDelegationAmount(r io.Reader, address string, args ...string) (float64, 
 		}
 		amount = balance + tokenToDenom(tokenAmt)
 		if amount <= 0 {
-			return 0, fmt.Errorf("Insufficient balance")
+			return 0, fmt.Errorf("Error: insufficient funds (requested %.0f%s)", amount, denom)
 		}
 		return amount, nil
 	}
@@ -398,6 +432,9 @@ func main() {
 		}
 		// Check if delegator in list and is not validator account
 		delegatorAddress := l.GetAddress(delegator)
+		if delegatorAddress == "" {
+			fmt.Println("Error: no delegator address")
+		}
 		if !omg.IsNormalAddress(delegatorAddress) {
 			fmt.Errorf("Invalid delegator wallet: %s\n", delegatorAddress)
 			os.Exit(1)
@@ -422,6 +459,7 @@ func main() {
 			os.Exit(1)
 		}
 		delegateToValidator(delegator, valAddress, amount, *auto)
+	
 	case *list:
 		if len(*l) == 0 {
 			fmt.Println("No accounts in store")

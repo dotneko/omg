@@ -70,6 +70,7 @@ func (l *Wallets) Delete(idx int) error {
 	return nil
 }
 
+// Get address for wallet name
 func (l *Wallets) GetAddress(name string) string {
 	for _, a := range *l {
 		if name == a.Name {
