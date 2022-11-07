@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"time"
 
 	"omg"
 )
@@ -248,14 +249,14 @@ func getDelegationAmount(r io.Reader, address string, args ...string) (float64, 
 			if err != nil {
 				return 0, err
 			}
-			fmt.Printf("Requested %.0f%s\n", amount,denom)
+			fmt.Printf("Requested %.0f%s\n", amount, denom)
 			if amount < 0 {
 				// Negative amounts represent approx remaining amount after delegation
 				if -amount > balance {
 					return 0, fmt.Errorf("Error: insufficent funds (requested %.0f%s", amount+balance, denom)
 				}
 				return amount + balance, nil
-				
+
 			}
 			if amount < 0 || amount > balance {
 				return 0, fmt.Errorf("Error: insufficient funds (requested %.0f%s)", amount, denom)
@@ -297,7 +298,7 @@ func getDelegationAmount(r io.Reader, address string, args ...string) (float64, 
 	}
 	if tokenAmt == 0 {
 		return 0, fmt.Errorf("Invalid amount %f", amount)
-	} 
+	}
 	if tokenAmt < 0 {
 		// Negative amounts represent approx remaining amount after delegation
 		balance, err := getBalance(address)
@@ -369,10 +370,11 @@ func main() {
 	}
 	// Parsing command line flags
 	add := flag.Bool("add", false, "Add [account_name] [address] to wallets list")
-	auto := flag.Bool("auto", false, "Auto confirm transactions")
+	auto := flag.Bool("auto", false, "Auto confirm transaction flag")
 	balance := flag.String("balance", "", "Check bank balance for [account_name]")
 	delegate := flag.Bool("delegate", false, "Delegate from [account_name] to [validator]")
 	list := flag.Bool("list", false, "List all accounts")
+	restake := flag.Bool("restake", false, "Restake from [account_name] to [validator]")
 	rewards := flag.String("rewards", "", "Check rewards for [account_name]")
 	rm := flag.String("rm", "", "Remove [account_name] from list")
 	wdall := flag.String("wdall", "", "Withdraw all rewards for [account_name]")
@@ -452,14 +454,14 @@ func main() {
 		// Check balance for delegator
 		fmt.Printf("Delegator %s [%s]\n", delegator, delegatorAddress)
 		checkBalance(delegatorAddress)
-		
+
 		amount, err := getDelegationAmount(os.Stdin, delegatorAddress, flag.Args()...)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
 		delegateToValidator(delegator, valAddress, amount, *auto)
-	
+
 	case *list:
 		if len(*l) == 0 {
 			fmt.Println("No accounts in store")
@@ -474,6 +476,64 @@ func main() {
 			os.Exit(1)
 		}
 		checkRewards(address)
+
+	case *restake:
+		// Ensure all arguments provided
+		if len(flag.Args()) != 2 {
+			fmt.Printf("Insufficient arguments. Expecting [delgator] [valdiator]")
+			os.Exit(1)
+		}
+		delegator := flag.Args()[0]
+		validator := flag.Args()[1]
+		delegatorAddress := l.GetAddress(delegator)
+		if delegatorAddress == "" {
+			fmt.Println("Error: no delegator address")
+		}
+		if !omg.IsNormalAddress(delegatorAddress) {
+			fmt.Errorf("Invalid delegator wallet: %s\n", delegatorAddress)
+			os.Exit(1)
+		}
+		// Check if valid validator address
+		valAddress := l.GetAddress(validator)
+		if valAddress == "" {
+			fmt.Errorf("Address not in list\n")
+			os.Exit(1)
+		}
+		if !omg.IsValidatorAddress(valAddress) {
+			fmt.Errorf("%q is not a validator address\n", valAddress)
+			os.Exit(1)
+		}
+		// Check balance for delegator
+		fmt.Printf("Delegator %s [%s]\n", delegator, delegatorAddress)
+		balanceBefore, err := getBalance(delegatorAddress)
+		if err != nil {
+			fmt.Errorf("Error getting balance for %s\n", delegator)
+			os.Exit(1)
+		}
+		fmt.Printf("Existing balance: %.0f %s\n", balanceBefore, denom)
+		fmt.Printf("Withdrawing rewards for %s [%s]\n", delegator, delegatorAddress)
+		withdrawRewards(delegator, *auto)
+		// Wait till balance is updated
+		var balance *float64
+		balance = new(float64)
+		count := 0
+		for count <= 10 {
+			*balance, _ = getBalance(delegatorAddress)
+			if *balance > balanceBefore {
+				fmt.Printf("Updated balance  : %.0f %s\n", *balance, denom)
+				break
+			}
+			count++
+			time.Sleep(1 * time.Second)
+		}
+		// If balance not updated and -auto flag set then abort
+		if *auto && *balance == balanceBefore {
+			fmt.Printf("Error getting rewards. Aborting auto-restake")
+			os.Exit(1)
+		}
+		// Restake amount leaving approx remainder of 1 token
+		amount := *balance - tokenToDenom(1.0)
+		delegateToValidator(delegator, valAddress, amount, *auto)
 
 	case *rm != "":
 		deleted := false
