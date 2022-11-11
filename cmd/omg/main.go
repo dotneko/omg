@@ -26,13 +26,14 @@ var (
 )
 
 const (
-	denom      = "anom"
-	token      = "nom"
-	decimals   = 18
-	jsonFlag   = "-o json"
-	defaultFee = 4998
-	gasAdjust  = 1.5
-	keyring    = "test"
+	denom       = "anom"
+	token       = "nom"
+	decimals    = 18
+	jsonFlag    = "--output json"
+	keyringFlag = "--keyring-backend"
+	defaultFee  = 4998
+	gasAdjust   = 1.5
+	keyring     = "test"
 )
 
 // Types for JSON unmarshalling
@@ -52,13 +53,23 @@ type ValidatorReward struct {
 }
 
 type DenomAmount struct {
-	Denom  string
-	Amount string
+	Denom  string `json:"denom"`
+	Amount string `json:"amount"`
 }
 
 type PaginationStruct struct {
 	NextKey string `json:"next_key"`
-	Total   string
+	Total   string `json:"total"`
+}
+
+type KeysListQuery struct {
+	Key []KeyStruct
+}
+type KeyStruct struct {
+	Name    string `json:"name"`
+	Type    string `json:"type"`
+	Address string `json:"address"`
+	Pubkey  string `json:"pubkey"`
 }
 
 func getNameAddress(r io.Reader, args ...string) (string, string, error) {
@@ -133,6 +144,37 @@ func getBalances(address string) (float64, error) {
 		return 0, err
 	}
 	return balance, nil
+}
+
+// Import address from keyring
+func importFromKeyring(wallet *omg.Wallets, keyring string) (int, error) {
+	cmdStr := fmt.Sprintf("keys list %s %s %s", jsonFlag, keyringFlag, keyring)
+	out, err := exec.Command(daemon, strings.Split(cmdStr, " ")...).Output()
+	if err != nil {
+		return 0, err
+	}
+	if !json.Valid(out) {
+		return 0, errors.New("Invalid json")
+	}
+	var k []KeyStruct
+	if err = json.Unmarshal(out, &k); err != nil {
+		return 0, err
+	}
+	if len(k) == 0 {
+		fmt.Println("No addresses in keyring")
+		return 0, nil
+	}
+	count := 0
+	for _, key := range k {
+		if wallet.GetAddress(key.Name) == "" {
+			wallet.Add(key.Name, key.Address)
+			count++
+			fmt.Printf("Imported %s [%s]\n", key.Name, key.Address)
+		} else {
+			fmt.Printf("Skip existing key with name %q [%s]\n", key.Name, key.Address)
+		}
+	}
+	return count, nil
 }
 
 // Check balance method
@@ -382,6 +424,8 @@ func main() {
 	convDenom := flag.String("convd", "", fmt.Sprintf("Convert (%s) to token (%s) amount", denom, token))
 	convToken := flag.String("convt", "", fmt.Sprintf("Convert (%s) to denom (%s) amount", token, denom))
 	delegate := flag.Bool("delegate", false, "Delegate from [account_name] to [validator]")
+	importAddrs := flag.Bool("import", false, "Import addresses from keyring")
+	keyring := flag.String("keyring", "test", "Keyring backend flag: e.g. test, pass")
 	list := flag.Bool("list", false, "List all accounts")
 	restake := flag.Bool("restake", false, "Restake from [account_name] to [validator]")
 	rewards := flag.String("rewards", "", "Check rewards for [account_name]")
@@ -487,6 +531,19 @@ func main() {
 		}
 		delegateToValidator(delegator, valAddress, amount, *auto)
 
+	case *importAddrs:
+		num, err := importFromKeyring(l, *keyring)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		if num > 0 {
+			// Save the new list
+			if err := l.Save(omgFileName); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
+			}
+		}
 	case *list:
 		if len(*l) == 0 {
 			fmt.Println("No accounts in store")
@@ -515,17 +572,17 @@ func main() {
 			fmt.Println("Error: no delegator address")
 		}
 		if !omg.IsNormalAddress(delegatorAddress) {
-			fmt.Errorf("Invalid delegator wallet: %s\n", delegatorAddress)
+			fmt.Fprintf(os.Stderr, "Invalid delegator wallet: %s\n", delegatorAddress)
 			os.Exit(1)
 		}
 		// Check if valid validator address
 		valAddress := l.GetAddress(validator)
 		if valAddress == "" {
-			fmt.Errorf("Address not in list\n")
+			fmt.Fprintf(os.Stderr, "Address not in list\n")
 			os.Exit(1)
 		}
 		if !omg.IsValidatorAddress(valAddress) {
-			fmt.Errorf("%q is not a validator address\n", valAddress)
+			fmt.Fprintf(os.Stderr, "%q is not a validator address\n", valAddress)
 			os.Exit(1)
 		}
 		// Check balance for delegator
