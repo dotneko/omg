@@ -10,6 +10,7 @@ import (
 	"math"
 	"os"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -92,15 +93,21 @@ func denomToToken(amt float64) float64 {
 	return amt / math.Pow10(decimals)
 }
 
+// Convert denom to annotated string
 func denomToStr(amt float64) string {
 	return fmt.Sprintf("%.0f%s", amt, denom)
 }
+
+// Convert token amount to denom amount
 func tokenToDenom(amt float64) float64 {
 	return amt * math.Pow10(decimals)
 }
 
+// Strip non-numeric characters and convert to float
 func strToFloat(amtstr string) (float64, error) {
-	amt, err := strconv.ParseFloat(amtstr, 64)
+	var nonNumericRegex = regexp.MustCompile(`[^0-9.]+`)
+	numstr := nonNumericRegex.ReplaceAllString(amtstr, "")
+	amt, err := strconv.ParseFloat(numstr, 64)
 	if err != nil {
 		return -1, err
 	}
@@ -372,6 +379,8 @@ func main() {
 	add := flag.Bool("add", false, "Add [account_name] [address] to wallets list")
 	auto := flag.Bool("auto", false, "Auto confirm transaction flag")
 	balances := flag.String("balances", "", "Check bank balances for [account_name]")
+	convDenom := flag.String("convd", "", fmt.Sprintf("Convert (%s) to token (%s) amount", denom, token))
+	convToken := flag.String("convt", "", fmt.Sprintf("Convert (%s) to denom (%s) amount", token, denom))
 	delegate := flag.Bool("delegate", false, "Delegate from [account_name] to [validator]")
 	list := flag.Bool("list", false, "List all accounts")
 	restake := flag.Bool("restake", false, "Restake from [account_name] to [validator]")
@@ -426,6 +435,22 @@ func main() {
 		}
 		checkBalances(address)
 
+	case *convDenom != "":
+		amt, err := strToFloat(*convDenom)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		fmt.Printf("%f %s\n", denomToToken(amt), token)
+
+	case *convToken != "":
+		amt, err := strToFloat(*convToken)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		fmt.Printf("%.0f%s", tokenToDenom(amt), denom)
+
 	case *delegate:
 		delegator, validator, err := getDelegatorValidator(os.Stdin, flag.Args()...)
 		if err != nil {
@@ -438,17 +463,17 @@ func main() {
 			fmt.Println("Error: no delegator address")
 		}
 		if !omg.IsNormalAddress(delegatorAddress) {
-			fmt.Errorf("Invalid delegator wallet: %s\n", delegatorAddress)
+			fmt.Fprintf(os.Stderr, "Invalid delegator wallet: %s\n", delegatorAddress)
 			os.Exit(1)
 		}
 		// Check if valid validator address
 		valAddress := l.GetAddress(validator)
 		if valAddress == "" {
-			fmt.Errorf("Address not in list\n")
+			fmt.Fprintf(os.Stderr, "Address not in list\n")
 			os.Exit(1)
 		}
 		if !omg.IsValidatorAddress(valAddress) {
-			fmt.Errorf("%q is not a validator address\n", valAddress)
+			fmt.Fprintf(os.Stderr, "%q is not a validator address\n", valAddress)
 			os.Exit(1)
 		}
 		// Check balance for delegator
@@ -457,7 +482,7 @@ func main() {
 
 		amount, err := getDelegationAmount(os.Stdin, delegatorAddress, flag.Args()...)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
 		delegateToValidator(delegator, valAddress, amount, *auto)
