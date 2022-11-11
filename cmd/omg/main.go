@@ -108,7 +108,7 @@ func strToFloat(amtstr string) (float64, error) {
 }
 
 // Parse balance
-func getBalance(address string) (float64, error) {
+func getBalances(address string) (float64, error) {
 	cmdStr := fmt.Sprintf("query bank balances %s %s", jsonFlag, address)
 	out, err := exec.Command(daemon, strings.Split(cmdStr, " ")...).Output()
 	if err != nil {
@@ -129,8 +129,8 @@ func getBalance(address string) (float64, error) {
 }
 
 // Check balance method
-func checkBalance(address string) {
-	balance, _ := getBalance(address)
+func checkBalances(address string) {
+	balance, _ := getBalances(address)
 	fmt.Printf("Balance = %.0f anom (%8.5f nom)\n", balance, denomToToken(balance))
 }
 
@@ -240,7 +240,7 @@ func getDelegatorValidator(r io.Reader, args ...string) (string, string, error) 
 // Get amount from stdin
 func getDelegationAmount(r io.Reader, address string, args ...string) (float64, error) {
 	var amount float64 = 0.0
-	balance, _ := getBalance(address)
+	balance, _ := getBalances(address)
 	if len(flag.Args()) == 3 {
 		// Check if denom appended
 		argStr := flag.Args()[2]
@@ -301,7 +301,7 @@ func getDelegationAmount(r io.Reader, address string, args ...string) (float64, 
 	}
 	if tokenAmt < 0 {
 		// Negative amounts represent approx remaining amount after delegation
-		balance, err := getBalance(address)
+		balance, err := getBalances(address)
 		if err != nil {
 			return 0, err
 		}
@@ -371,7 +371,7 @@ func main() {
 	// Parsing command line flags
 	add := flag.Bool("add", false, "Add [account_name] [address] to wallets list")
 	auto := flag.Bool("auto", false, "Auto confirm transaction flag")
-	balance := flag.String("balance", "", "Check bank balance for [account_name]")
+	balances := flag.String("balances", "", "Check bank balances for [account_name]")
 	delegate := flag.Bool("delegate", false, "Delegate from [account_name] to [validator]")
 	list := flag.Bool("list", false, "List all accounts")
 	restake := flag.Bool("restake", false, "Restake from [account_name] to [validator]")
@@ -418,13 +418,13 @@ func main() {
 		}
 		fmt.Printf("Added %q, %q to wallets\n", name, address)
 
-	case *balance != "":
-		address := l.GetAddress(*balance)
+	case *balances != "":
+		address := l.GetAddress(*balances)
 		if address == "" {
-			fmt.Printf("Error: account %q not found.\n", *balance)
+			fmt.Printf("Error: account %q not found.\n", *balances)
 			os.Exit(1)
 		}
-		checkBalance(address)
+		checkBalances(address)
 
 	case *delegate:
 		delegator, validator, err := getDelegatorValidator(os.Stdin, flag.Args()...)
@@ -453,7 +453,7 @@ func main() {
 		}
 		// Check balance for delegator
 		fmt.Printf("Delegator %s [%s]\n", delegator, delegatorAddress)
-		checkBalance(delegatorAddress)
+		checkBalances(delegatorAddress)
 
 		amount, err := getDelegationAmount(os.Stdin, delegatorAddress, flag.Args()...)
 		if err != nil {
@@ -505,7 +505,7 @@ func main() {
 		}
 		// Check balance for delegator
 		fmt.Printf("Delegator %s [%s]\n", delegator, delegatorAddress)
-		balanceBefore, err := getBalance(delegatorAddress)
+		balanceBefore, err := getBalances(delegatorAddress)
 		if err != nil {
 			fmt.Errorf("Error getting balance for %s\n", delegator)
 			os.Exit(1)
@@ -518,7 +518,7 @@ func main() {
 		balance = new(float64)
 		count := 0
 		for count <= 10 {
-			*balance, _ = getBalance(delegatorAddress)
+			*balance, _ = getBalances(delegatorAddress)
 			if *balance > balanceBefore {
 				fmt.Printf("Updated balance  : %.0f %s\n", *balance, denom)
 				break
