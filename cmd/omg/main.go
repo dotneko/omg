@@ -26,14 +26,14 @@ var (
 )
 
 const (
-	denom       = "anom"
-	token       = "nom"
-	decimals    = 18
-	jsonFlag    = "--output json"
-	keyringFlag = "--keyring-backend"
-	defaultFee  = 4998
-	gasAdjust   = 1.5
-	keyring     = "test"
+	denom          = "anom"
+	token          = "nom"
+	decimals       = 18
+	jsonFlag       = "--output json"
+	keyringFlag    = "--keyring-backend"
+	defaultFee     = 4998
+	gasAdjust      = 1.2
+	keyringDefault = "test"
 )
 
 // Types for JSON unmarshalling
@@ -209,7 +209,7 @@ func checkRewards(address string) {
 }
 
 // Withdraw all rewards method
-func withdrawRewards(name string, auto bool) {
+func withdrawRewards(name string, keyring string, auto bool) {
 
 	cmdStr := fmt.Sprintf("tx distribution withdraw-all-rewards --from %s", name)
 	cmdStr += fmt.Sprintf(" --fees %d%s --gas auto --gas-adjustment %f", defaultFee, denom, gasAdjust)
@@ -248,21 +248,21 @@ func withdrawRewards(name string, auto bool) {
 
 }
 
-// Get delegator and validator from args or stdin
-func getDelegatorValidator(r io.Reader, args ...string) (string, string, error) {
+// Get accounts for transaction from args or stdin
+func getTxAccounts(r io.Reader, action string, args ...string) (string, string, error) {
 	var (
-		delegator string = ""
-		validator string = ""
+		acc1 string = ""
+		acc2 string = ""
 	)
 	if len(args) >= 2 {
-		delegator = args[0]
-		validator = args[1]
+		acc1 = args[0]
+		acc2 = args[1]
 	}
 
 	s := bufio.NewScanner(r)
-	// Get delegator input if no argument provided
-	if delegator == "" {
-		fmt.Print("Enter wallet to delegate from : ")
+	// Get input if no argument provided for 1st account
+	if acc1 == "" {
+		fmt.Printf("Enter wallet to %s from : ", action)
 		s.Scan()
 		if err := s.Err(); err != nil {
 			return "", "", err
@@ -270,24 +270,28 @@ func getDelegatorValidator(r io.Reader, args ...string) (string, string, error) 
 		if len(s.Text()) == 0 {
 			return "", "", fmt.Errorf("Name cannot be blank\n")
 		}
-		delegator = s.Text()
+		acc1 = s.Text()
 	}
-	if validator == "" {
-		fmt.Print("Enter validator to delegate to : ")
+	if acc2 == "" {
+		if action == "delegate" {
+			fmt.Print("Enter validator to delegate to : ")
+		} else {
+			fmt.Print("Enter wallet to %s to : ", action)
+		}
 		s.Scan()
 		if err := s.Err(); err != nil {
 			return "", "", err
 		}
 		if len(s.Text()) == 0 {
-			return "", "", fmt.Errorf("Validator cannot be blank\n")
+			return "", "", fmt.Errorf("Name cannot be blank\n")
 		}
-		validator = s.Text()
+		acc2 = s.Text()
 	}
-	return delegator, validator, nil
+	return acc1, acc2, nil
 }
 
 // Get amount from stdin
-func getDelegationAmount(r io.Reader, address string, args ...string) (float64, error) {
+func getAmount(r io.Reader, action string, address string, args ...string) (float64, error) {
 	var amount float64 = 0.0
 	balance, _ := getBalances(address)
 	if len(flag.Args()) == 3 {
@@ -331,7 +335,7 @@ func getDelegationAmount(r io.Reader, address string, args ...string) (float64, 
 		return amount, nil
 	}
 	s := bufio.NewScanner(r)
-	fmt.Printf("Enter amount to delegate [%s] : ", token)
+	fmt.Printf("Enter amount to %s [%s] : ", action, token)
 
 	s.Scan()
 	if err := s.Err(); err != nil {
@@ -349,7 +353,7 @@ func getDelegationAmount(r io.Reader, address string, args ...string) (float64, 
 		return 0, fmt.Errorf("Invalid amount %f", amount)
 	}
 	if tokenAmt < 0 {
-		// Negative amounts represent approx remaining amount after delegation
+		// Negative amounts represent approx remaining amount after action
 		balance, err := getBalances(address)
 		if err != nil {
 			return 0, err
@@ -365,11 +369,52 @@ func getDelegationAmount(r io.Reader, address string, args ...string) (float64, 
 }
 
 // Delegate to validator method
-func delegateToValidator(delegator string, valAddress string, amount float64, auto bool) {
+func delegateToValidator(delegator string, valAddress string, amount float64, keyring string, auto bool) {
 	// fmt.Printf("DelegateToValidator %s %s %s %t\n", delegator, valAddress, denomToStr(amount), auto)
 
 	cmdStr := fmt.Sprintf("tx staking delegate %s %s --from %s", valAddress, denomToStr(amount), delegator)
 	cmdStr += fmt.Sprintf(" --fees %d%s --gas auto --gas-adjustment %f", defaultFee, denom, gasAdjust)
+	cmdStr += fmt.Sprintf(" --keyring-backend %s --chain-id %s", keyring, chainId)
+
+	fmt.Printf("Executing: %s %s\n", daemon, cmdStr)
+	cmd := exec.Command(daemon, strings.Split(cmdStr, " ")...)
+
+	if auto {
+		// Auto confirm transaction
+		stdin, err := cmd.StdinPipe()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Start(); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+		// Expect prompt and confirm with 'y'
+		stdin.Write([]byte("y\n"))
+
+		if err := cmd.Wait(); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+	} else {
+		// Interactive execution
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+	}
+}
+
+// Send tokens between accounts method
+func txSend(fromAddress string, toAddress string, amount float64, keyring string, auto bool) {
+	// fmt.Printf("DelegateToValidator %s %s %s %t\n", delegator, valAddress, denomToStr(amount), auto)
+
+	cmdStr := fmt.Sprintf("tx bank send %s %s %s", fromAddress, toAddress, denomToStr(amount))
+	//cmdStr += fmt.Sprintf(" --fees %d%s --gas auto --gas-adjustment %f", defaultFee, denom, gasAdjust)
+	cmdStr += fmt.Sprintf("--gas auto --gas-adjustment %f", gasAdjust)
 	cmdStr += fmt.Sprintf(" --keyring-backend %s --chain-id %s", keyring, chainId)
 
 	fmt.Printf("Executing: %s %s\n", daemon, cmdStr)
@@ -413,7 +458,7 @@ func main() {
 	// Flag usage
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(),
-			"%s tool. ", os.Args[0])
+			"%s: Onomy Manager. ", os.Args[0])
 		fmt.Fprintf(flag.CommandLine.Output(), "Usage infomation:\n")
 		flag.PrintDefaults()
 	}
@@ -423,13 +468,14 @@ func main() {
 	balances := flag.String("balances", "", "Check bank balances for [account_name]")
 	convDenom := flag.String("convd", "", fmt.Sprintf("Convert (%s) to token (%s) amount", denom, token))
 	convToken := flag.String("convt", "", fmt.Sprintf("Convert (%s) to denom (%s) amount", token, denom))
-	delegate := flag.Bool("delegate", false, "Delegate from [account_name] to [validator]")
+	delegate := flag.Bool("delegate", false, "Delegate from [account_name] to [validator_name]")
 	importAddrs := flag.Bool("import", false, "Import addresses from keyring")
-	keyring := flag.String("keyring", "test", "Keyring backend flag: e.g. test, pass")
+	keyring := flag.String("keyring", keyringDefault, "Keyring backend flag: e.g. test, pass")
 	list := flag.Bool("list", false, "List all accounts")
 	restake := flag.Bool("restake", false, "Restake from [account_name] to [validator]")
 	rewards := flag.String("rewards", "", "Check rewards for [account_name]")
 	rm := flag.String("rm", "", "Remove [account_name] from list")
+	send := flag.Bool("send", false, "Send tokens from [from_account_name] to [to_account_name]")
 	wdall := flag.String("wdall", "", "Withdraw all rewards for [account_name]")
 
 	flag.Parse()
@@ -496,7 +542,7 @@ func main() {
 		fmt.Printf("%.0f%s", tokenToDenom(amt), denom)
 
 	case *delegate:
-		delegator, validator, err := getDelegatorValidator(os.Stdin, flag.Args()...)
+		delegator, validator, err := getTxAccounts(os.Stdin, "delegate", flag.Args()...)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
@@ -524,12 +570,12 @@ func main() {
 		fmt.Printf("Delegator %s [%s]\n", delegator, delegatorAddress)
 		checkBalances(delegatorAddress)
 
-		amount, err := getDelegationAmount(os.Stdin, delegatorAddress, flag.Args()...)
+		amount, err := getAmount(os.Stdin, "delegate", delegatorAddress, flag.Args()...)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		delegateToValidator(delegator, valAddress, amount, *auto)
+		delegateToValidator(delegator, valAddress, amount, *keyring, *auto)
 
 	case *importAddrs:
 		num, err := importFromKeyring(l, *keyring)
@@ -594,7 +640,7 @@ func main() {
 		}
 		fmt.Printf("Existing balance: %.0f %s\n", balanceBefore, denom)
 		fmt.Printf("Withdrawing rewards for %s [%s]\n", delegator, delegatorAddress)
-		withdrawRewards(delegator, *auto)
+		withdrawRewards(delegator, *keyring, *auto)
 		// Wait till balance is updated
 		var balance *float64
 		balance = new(float64)
@@ -615,7 +661,7 @@ func main() {
 		}
 		// Restake amount leaving approx remainder of 1 token
 		amount := *balance - tokenToDenom(1.0)
-		delegateToValidator(delegator, valAddress, amount, *auto)
+		delegateToValidator(delegator, valAddress, amount, *keyring, *auto)
 
 	case *rm != "":
 		deleted := false
@@ -634,13 +680,49 @@ func main() {
 			fmt.Printf("%q not found.", *rm)
 		}
 
+	case *send:
+		from, to, err := getTxAccounts(os.Stdin, "send", flag.Args()...)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		// Check if delegator in list and is not validator account
+		fromAddress := l.GetAddress(from)
+		if fromAddress == "" {
+			fmt.Println("Error: no from address")
+		}
+		if !omg.IsNormalAddress(fromAddress) {
+			fmt.Fprintf(os.Stderr, "Invalid normal account: %s\n", fromAddress)
+			os.Exit(1)
+		}
+		// Check if valid validator address
+		toAddress := l.GetAddress(to)
+		if toAddress == "" {
+			fmt.Fprintf(os.Stderr, "Address not in list\n")
+			os.Exit(1)
+		}
+		if !omg.IsNormalAddress(toAddress) {
+			fmt.Fprintf(os.Stderr, "Invalid normal account: %s\n", toAddress)
+			os.Exit(1)
+		}
+		// Check balance for delegator
+		fmt.Printf("From: %s [%s]\n", from, fromAddress)
+		checkBalances(fromAddress)
+
+		amount, err := getAmount(os.Stdin, "send", fromAddress, flag.Args()...)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		txSend(from, to, amount, *keyring, *auto)
+
 	case *wdall != "":
 		address := l.GetAddress(*wdall)
 		if address == "" {
 			fmt.Printf("Error: account %q not found.\n", *wdall)
 			os.Exit(1)
 		}
-		withdrawRewards(*wdall, *auto)
+		withdrawRewards(*wdall, *keyring, *auto)
 
 	default:
 		flag.Usage()
