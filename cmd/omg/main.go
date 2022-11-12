@@ -21,19 +21,19 @@ import (
 // Project defaults
 var (
 	daemon      = "onomyd"
-	omgFileName = ".omg.json"
+	omgFilename = ".omg.json"
 	chainId     = "onomy-testnet-1"
 )
 
 const (
-	denom          = "anom"
-	token          = "nom"
-	decimals       = 18
-	jsonFlag       = "--output json"
-	keyringFlag    = "--keyring-backend"
-	defaultFee     = 4998
-	gasAdjust      = 1.2
-	keyringDefault = "test"
+	denom          string  = "anom"
+	token          string  = "nom"
+	decimals       int     = 18
+	jsonFlag       string  = "--output json"
+	keyringFlag    string  = "--keyring-backend"
+	defaultFee     int     = 4998
+	gasAdjust      float32 = 1.2
+	keyringDefault string  = "test"
 )
 
 // Types for JSON unmarshalling
@@ -72,21 +72,21 @@ type KeyStruct struct {
 	Pubkey  string `json:"pubkey"`
 }
 
-func getNameAddress(r io.Reader, args ...string) (string, string, error) {
-	var name, address = "", ""
+func getAliasAddress(r io.Reader, args ...string) (string, string, error) {
+	var alias, address = "", ""
 	if len(args) >= 2 {
 		return args[0], args[1], nil
 	}
 	s := bufio.NewScanner(r)
-	fmt.Print("Enter acc name : ")
+	fmt.Print("Enter acc alias : ")
 	s.Scan()
 	if err := s.Err(); err != nil {
 		return "", "", err
 	}
 	if len(s.Text()) == 0 {
-		return "", "", fmt.Errorf("Name cannot be blank")
+		return "", "", fmt.Errorf("Alias cannot be blank")
 	}
-	name = s.Text()
+	alias = s.Text()
 	fmt.Print("Enter address  : ")
 	s.Scan()
 	if err := s.Err(); err != nil {
@@ -96,7 +96,7 @@ func getNameAddress(r io.Reader, args ...string) (string, string, error) {
 		return "", "", fmt.Errorf("Address cannot be blank")
 	}
 	address = s.Text()
-	return name, address, nil
+	return alias, address, nil
 }
 
 // Convert denom to token amount
@@ -171,7 +171,7 @@ func importFromKeyring(wallet *omg.Wallets, keyring string) (int, error) {
 			count++
 			fmt.Printf("Imported %s [%s]\n", key.Name, key.Address)
 		} else {
-			fmt.Printf("Skip existing key with name %q [%s]\n", key.Name, key.Address)
+			fmt.Printf("Skip existing key with alias %q [%s]\n", key.Name, key.Address)
 		}
 	}
 	return count, nil
@@ -209,9 +209,9 @@ func checkRewards(address string) {
 }
 
 // Withdraw all rewards method
-func withdrawRewards(name string, keyring string, auto bool) {
+func withdrawRewards(alias string, keyring string, auto bool) {
 
-	cmdStr := fmt.Sprintf("tx distribution withdraw-all-rewards --from %s", name)
+	cmdStr := fmt.Sprintf("tx distribution withdraw-all-rewards --from %s", alias)
 	cmdStr += fmt.Sprintf(" --fees %d%s --gas auto --gas-adjustment %f", defaultFee, denom, gasAdjust)
 	cmdStr += fmt.Sprintf(" --keyring-backend %s --chain-id %s", keyring, chainId)
 
@@ -268,7 +268,7 @@ func getTxAccounts(r io.Reader, action string, args ...string) (string, string, 
 			return "", "", err
 		}
 		if len(s.Text()) == 0 {
-			return "", "", fmt.Errorf("Name cannot be blank\n")
+			return "", "", fmt.Errorf("Alias cannot be blank\n")
 		}
 		acc1 = s.Text()
 	}
@@ -276,14 +276,14 @@ func getTxAccounts(r io.Reader, action string, args ...string) (string, string, 
 		if action == "delegate" {
 			fmt.Print("Enter validator to delegate to : ")
 		} else {
-			fmt.Print("Enter wallet to %s to : ", action)
+			fmt.Printf("Enter wallet to %s to : ", action)
 		}
 		s.Scan()
 		if err := s.Err(); err != nil {
 			return "", "", err
 		}
 		if len(s.Text()) == 0 {
-			return "", "", fmt.Errorf("Name cannot be blank\n")
+			return "", "", fmt.Errorf("Alias cannot be blank\n")
 		}
 		acc2 = s.Text()
 	}
@@ -452,31 +452,31 @@ func txSend(fromAddress string, toAddress string, amount float64, keyring string
 func main() {
 
 	if os.Getenv("OMG_FILENAME") != "" {
-		omgFileName = os.Getenv("OMG_FILENAME")
+		omgFilename = os.Getenv("OMG_FILENAME")
 	}
 
 	// Flag usage
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(),
-			"%s: Onomy Manager. ", os.Args[0])
+			"%s - Onomy Manager. ", os.Args[0])
 		fmt.Fprintf(flag.CommandLine.Output(), "Usage infomation:\n")
 		flag.PrintDefaults()
 	}
 	// Parsing command line flags
-	add := flag.Bool("add", false, "Add [account_name] [address] to wallets list")
+	add := flag.Bool("add", false, "Add [alias] [address] to wallets list")
 	auto := flag.Bool("auto", false, "Auto confirm transaction flag")
-	balances := flag.String("balances", "", "Check bank balances for [account_name]")
+	balances := flag.String("balances", "", "Check bank balances for [alias]")
 	convDenom := flag.String("convd", "", fmt.Sprintf("Convert (%s) to token (%s) amount", denom, token))
 	convToken := flag.String("convt", "", fmt.Sprintf("Convert (%s) to denom (%s) amount", token, denom))
-	delegate := flag.Bool("delegate", false, "Delegate from [account_name] to [validator_name]")
+	delegate := flag.Bool("delegate", false, "Delegate from [alias] to [validator alias]")
 	importAddrs := flag.Bool("import", false, "Import addresses from keyring")
-	keyring := flag.String("keyring", keyringDefault, "Keyring backend flag: e.g. test, pass")
+	keyring := flag.String("keyring", keyringDefault, "Keyring-backend flag: e.g. test, pass")
 	list := flag.Bool("list", false, "List all accounts")
-	restake := flag.Bool("restake", false, "Restake from [account_name] to [validator]")
-	rewards := flag.String("rewards", "", "Check rewards for [account_name]")
-	rm := flag.String("rm", "", "Remove [account_name] from list")
-	send := flag.Bool("send", false, "Send tokens from [from_account_name] to [to_account_name]")
-	wdall := flag.String("wdall", "", "Withdraw all rewards for [account_name]")
+	restake := flag.Bool("restake", false, "Restake from [alias] to [validator alias]")
+	rewards := flag.String("rewards", "", "Check rewards for [alias]")
+	rm := flag.String("rm", "", "Remove [alias] from list")
+	send := flag.Bool("send", false, "Send tokens from [alias from] to [alias to]")
+	wdall := flag.String("wdall", "", "Withdraw all rewards for [alias]")
 
 	flag.Parse()
 
@@ -484,7 +484,7 @@ func main() {
 	l := &omg.Wallets{}
 
 	// Read items from file
-	if err := l.Load(omgFileName); err != nil {
+	if err := l.Load(omgFilename); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
@@ -493,29 +493,40 @@ func main() {
 	switch {
 
 	case *add:
-		name, address, err := getNameAddress(os.Stdin, flag.Args()...)
+		alias, address, err := getAliasAddress(os.Stdin, flag.Args()...)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		// Check if name exists
+		// Require minimum of 3 characters for alias
+		if len(alias) < omg.MinAliasLength {
+			fmt.Fprintln(os.Stderr, "Error: Please use alias of at least 3 characters")
+			os.Exit(1)
+		}
+		// Check if valid address
+		if !omg.IsValidAddress(address) {
+			fmt.Fprintln(os.Stderr, "Error: Invalid address")
+			fmt.Fprintf(os.Stderr, "Expecting %s or %s prefixes", omg.AddressPrefix, omg.ValoperPrefix)
+			os.Exit(1)
+		}
+		// Check if alias exists
 		existingAddress := ""
 		for _, a := range *l {
-			if a.Name == name {
+			if a.Alias == alias {
 				existingAddress = a.Address
 			}
 		}
 		if existingAddress != "" {
-			fmt.Printf("Aborting: %q already exists [%s]\n", name, existingAddress)
+			fmt.Printf("Aborting: %q already exists [%s]\n", alias, existingAddress)
 			os.Exit(1)
 		}
-		l.Add(name, address)
+		l.Add(alias, address)
 		// Save the new list
-		if err := l.Save(omgFileName); err != nil {
+		if err := l.Save(omgFilename); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		fmt.Printf("Added %q, %q to wallets\n", name, address)
+		fmt.Printf("Added %q, %q to wallets\n", alias, address)
 
 	case *balances != "":
 		address := l.GetAddress(*balances)
@@ -550,7 +561,8 @@ func main() {
 		// Check if delegator in list and is not validator account
 		delegatorAddress := l.GetAddress(delegator)
 		if delegatorAddress == "" {
-			fmt.Println("Error: no delegator address")
+			fmt.Fprintf(os.Stderr, "Error: no delegator address")
+			os.Exit(1)
 		}
 		if !omg.IsNormalAddress(delegatorAddress) {
 			fmt.Fprintf(os.Stderr, "Invalid delegator wallet: %s\n", delegatorAddress)
@@ -585,7 +597,7 @@ func main() {
 		}
 		if num > 0 {
 			// Save the new list
-			if err := l.Save(omgFileName); err != nil {
+			if err := l.Save(omgFilename); err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
@@ -635,7 +647,7 @@ func main() {
 		fmt.Printf("Delegator %s [%s]\n", delegator, delegatorAddress)
 		balanceBefore, err := getBalances(delegatorAddress)
 		if err != nil {
-			fmt.Errorf("Error getting balance for %s\n", delegator)
+			fmt.Fprintf(os.Stderr, "Error getting balance for %s\n", delegator)
 			os.Exit(1)
 		}
 		fmt.Printf("Existing balance: %.0f %s\n", balanceBefore, denom)
@@ -666,13 +678,13 @@ func main() {
 	case *rm != "":
 		deleted := false
 		for k, a := range *l {
-			if *rm == a.Name {
+			if *rm == a.Alias {
 				l.Delete(k)
-				if err := l.Save(omgFileName); err != nil {
+				if err := l.Save(omgFilename); err != nil {
 					fmt.Fprintln(os.Stderr, err)
 					os.Exit(1)
 				}
-				fmt.Printf("Deleted: %q [%q]\n", a.Name, a.Address)
+				fmt.Printf("Deleted: %q [%q]\n", a.Alias, a.Address)
 				deleted = true
 			}
 		}

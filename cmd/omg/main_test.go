@@ -42,7 +42,7 @@ func TestOmgCLI(t *testing.T) {
 	}
 	cmdPath := filepath.Join(dir, binName)
 	aName1 := "Test1"
-	aAddress1 := "TestAddress1"
+	aAddress1 := "onomy123456890111111111111111111111111111111"
 
 	t.Run("AddNewAccountFromArguments", func(t *testing.T) {
 
@@ -53,7 +53,7 @@ func TestOmgCLI(t *testing.T) {
 	})
 
 	aName2 := "Test2"
-	aAddress2 := "TestAddress2"
+	aAddress2 := "onomy123456890111111111111111111111111111112"
 
 	t.Run("AddNewAccountFromSTDIN", func(t *testing.T) {
 		cmd := exec.Command(cmdPath, "-add")
@@ -78,7 +78,7 @@ func TestOmgCLI(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		expected := fmt.Sprintf("%2d: %s [%s]\n%2d: %s [%s]\n", 0, aName1, aAddress1, 1, aName2, aAddress2)
+		expected := fmt.Sprintf("%2d: %10s [%s]\n%2d: %10s [%s]\n", 0, aName1, aAddress1, 1, aName2, aAddress2)
 
 		if expected != string(out) {
 			t.Errorf("Expected %q, got %q instead\n", expected, string(out))
@@ -86,7 +86,7 @@ func TestOmgCLI(t *testing.T) {
 	})
 
 	t.Run("DeleteAccount", func(t *testing.T) {
-		cmd := exec.Command(cmdPath, "-del", aName1)
+		cmd := exec.Command(cmdPath, "-rm", aName1)
 		out, err := cmd.CombinedOutput()
 		if err != nil {
 			t.Fatal(err)

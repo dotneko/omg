@@ -9,7 +9,7 @@ import (
 
 func TestAddressTypes(t *testing.T) {
 	normalAddress := "onomy123456890111111111111111111111111111111"
-	validatorAddress := "onomyvaloper12345689011111111111111111111111"
+	validatorAddress := "onomyvaloper123456890111111111111111111111111111111"
 	invalidAddress := "cosmosnotavalidaddress0000000000000000000000"
 	type typeTest struct {
 		address     string
@@ -18,9 +18,9 @@ func TestAddressTypes(t *testing.T) {
 		isValid     bool
 	}
 	var typeTests = []typeTest{
-		typeTest{normalAddress, true, false, true},
-		typeTest{validatorAddress, false, true, true},
-		typeTest{invalidAddress, false, false, false},
+		{normalAddress, true, false, true},
+		{validatorAddress, false, true, true},
+		{invalidAddress, false, false, false},
 	}
 	for _, test := range typeTests {
 		if omg.IsNormalAddress(test.address) != test.isNormal {
@@ -38,12 +38,12 @@ func TestAddressTypes(t *testing.T) {
 func TestAdd(t *testing.T) {
 	l := omg.Wallets{}
 
-	name := "Test1"
+	alias := "Test1"
 	address := "onomy123456890111111111111111111111111111111"
-	l.Add(name, address)
+	l.Add(alias, address)
 
-	if l[0].Name != name {
-		t.Errorf("Expected %q, got %q instead.", name, l[0].Name)
+	if l[0].Alias != alias {
+		t.Errorf("Expected %q, got %q instead.", alias, l[0].Alias)
 	}
 	if l[0].Address != address {
 		t.Errorf("Expected %q, got %q instead.", address, l[0].Address)
@@ -54,16 +54,16 @@ func TestDelete(t *testing.T) {
 	l := omg.Wallets{}
 
 	accounts := []omg.Account{
-		{Name: "Test1", Address: "onomy123456890111111111111111111111111111111"},
-		{Name: "Test2", Address: "onomy123456890222222222222222222222222222222"},
-		{Name: "Test3", Address: "onomy123456890333333333333333333333333333333"},
+		{Alias: "Test1", Address: "onomy123456890111111111111111111111111111111"},
+		{Alias: "Test2", Address: "onomy123456890222222222222222222222222222222"},
+		{Alias: "Test3", Address: "onomy123456890333333333333333333333333333333"},
 	}
 
 	for _, a := range accounts {
-		l.Add(a.Name, a.Address)
+		l.Add(a.Alias, a.Address)
 	}
-	if l[0].Name != accounts[0].Name {
-		t.Errorf("Expected %q, got %q instead.", accounts[0].Name, l[0].Name)
+	if l[0].Alias != accounts[0].Alias {
+		t.Errorf("Expected %q, got %q instead.", accounts[0].Alias, l[0].Alias)
 	}
 	l.Delete(2)
 
@@ -80,9 +80,9 @@ func TestSaveLoad(t *testing.T) {
 	l1 := omg.Wallets{}
 	l2 := omg.Wallets{}
 
-	account := omg.Account{Name: "Test1", Address: "onomy123456890111111111111111111111111111111"}
+	account := omg.Account{Alias: "Test1", Address: "onomy123456890111111111111111111111111111111"}
 
-	l1.Add(account.Name, account.Address)
+	l1.Add(account.Alias, account.Address)
 	if l1[0] != account {
 		t.Errorf("Expected %q, got %q instead.", account, l1[0])
 	}
@@ -99,7 +99,7 @@ func TestSaveLoad(t *testing.T) {
 	if err := l2.Load(tf.Name()); err != nil {
 		t.Fatalf("Error getting list from file: %s", err)
 	}
-	if l1[0].Name != l2[0].Name {
-		t.Errorf("Name %q should match name %q", l1[0].Name, l2[0].Name)
+	if l1[0].Alias != l2[0].Alias {
+		t.Errorf("Alias %q should match alias %q", l1[0].Alias, l2[0].Alias)
 	}
 }

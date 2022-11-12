@@ -8,15 +8,22 @@ import (
 )
 
 type Account struct {
-	Name    string
+	Alias   string
 	Address string
 }
 
 type Wallets []Account
 
+const (
+	MinAliasLength int    = 3
+	AddressPrefix  string = "onomy"
+	ValoperPrefix  string = "onomyvaloper"
+	bech32len      int    = 39
+)
+
 // Checks if address is a validator account
 func IsValidatorAddress(address string) bool {
-	if address[:12] == "onomyvaloper" {
+	if len(address) == (len(ValoperPrefix)+bech32len) && address[:12] == ValoperPrefix {
 		return true
 	}
 	return false
@@ -24,7 +31,7 @@ func IsValidatorAddress(address string) bool {
 
 // Checks if address is a wallet account
 func IsNormalAddress(address string) bool {
-	if address[:5] == "onomy" && address[5:12] != "valoper" {
+	if len(address) == (len(AddressPrefix)+bech32len) && address[:5] == "onomy" {
 		return true
 	}
 	return false
@@ -43,15 +50,15 @@ func IsValidAddress(address string) bool {
 func (l *Wallets) String() string {
 	formatted := ""
 	for k, a := range *l {
-		formatted += fmt.Sprintf("%2d: %10s [%s]\n", k, a.Name, a.Address)
+		formatted += fmt.Sprintf("%2d: %10s [%s]\n", k, a.Alias, a.Address)
 	}
 	return formatted
 }
 
 // Add method creates a new account and appends it to the list of Wallets
-func (l *Wallets) Add(name string, address string) {
+func (l *Wallets) Add(alias string, address string) {
 	a := Account{
-		Name:    name,
+		Alias:   alias,
 		Address: address,
 	}
 
@@ -70,10 +77,10 @@ func (l *Wallets) Delete(idx int) error {
 	return nil
 }
 
-// Get address for wallet name
-func (l *Wallets) GetAddress(name string) string {
+// Get address for wallet alias
+func (l *Wallets) GetAddress(alias string) string {
 	for _, a := range *l {
-		if name == a.Name {
+		if alias == a.Alias {
 			return a.Address
 		}
 	}
@@ -81,17 +88,17 @@ func (l *Wallets) GetAddress(name string) string {
 }
 
 // Save method encodes the Wallets list as JSON and saves it
-func (l *Wallets) Save(filename string) error {
+func (l *Wallets) Save(filealias string) error {
 	js, err := json.Marshal(l)
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(filename, js, 0644)
+	return os.WriteFile(filealias, js, 0644)
 }
 
-// Get method opens the provided filename, decodes JSON and parses it to list
-func (l *Wallets) Load(filename string) error {
-	file, err := os.ReadFile(filename)
+// Get method opens the provided filealias, decodes JSON and parses it to list
+func (l *Wallets) Load(filealias string) error {
+	file, err := os.ReadFile(filealias)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil
