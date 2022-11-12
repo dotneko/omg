@@ -473,6 +473,7 @@ func main() {
 	keyring := flag.String("keyring", keyringDefault, "Keyring-backend flag: e.g. test, pass")
 	list := flag.Bool("list", false, "List all accounts")
 	restake := flag.Bool("restake", false, "Restake from [alias] to [validator alias]")
+	rename := flag.Bool("rename", false, "Rename [alias] to [new alias]")
 	rewards := flag.String("rewards", "", "Check rewards for [alias]")
 	rm := flag.String("rm", "", "Remove [alias] from list")
 	send := flag.Bool("send", false, "Send tokens from [alias from] to [alias to]")
@@ -674,6 +675,27 @@ func main() {
 		// Restake amount leaving approx remainder of 1 token
 		amount := *balance - tokenToDenom(1.0)
 		delegateToValidator(delegator, valAddress, amount, *keyring, *auto)
+
+	case *rename:
+		oldAlias := flag.Args()[0]
+		newAlias := flag.Args()[1]
+
+		if len(newAlias) < omg.MinAliasLength {
+			fmt.Fprintln(os.Stderr, "Error: Please use alias of at least 3 characters")
+			os.Exit(1)
+		}
+		idx := l.GetIndex(oldAlias)
+		err := l.Modify(idx, newAlias, "")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %s", err.Error())
+			os.Exit(1)
+		}
+		err = l.Save(omgFilename)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		fmt.Printf("Renamed: %q to %q\n", oldAlias, newAlias)
 
 	case *rm != "":
 		deleted := false

@@ -77,6 +77,22 @@ func (l *Wallets) Delete(idx int) error {
 	return nil
 }
 
+// Modify account details
+func (l *Wallets) Modify(idx int, alias string, address string) error {
+	ls := *l
+	if idx < 0 || idx >= len(ls) {
+		return fmt.Errorf("Account at index %d does not exist", idx)
+	}
+	if alias != "" {
+		ls[idx].Alias = alias
+	}
+	if address != "" {
+		ls[idx].Address = address
+	}
+	*l = ls
+	return nil
+}
+
 // Get address for wallet alias
 func (l *Wallets) GetAddress(alias string) string {
 	for _, a := range *l {
@@ -85,6 +101,16 @@ func (l *Wallets) GetAddress(alias string) string {
 		}
 	}
 	return ""
+}
+
+// Get index for wallet alias
+func (l *Wallets) GetIndex(alias string) int {
+	for idx, a := range *l {
+		if alias == a.Alias {
+			return idx
+		}
+	}
+	return -1
 }
 
 // Save method encodes the Wallets list as JSON and saves it
