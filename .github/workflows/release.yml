@@ -18,4 +18,4 @@ jobs:
         project_path: "./cmd/omg"
         binary_name: "omg"
         ldflags: "-s -w"
-        extra_files LICENSE.txt README.md
+        extra_files: LICENSE.txt README.md
