@@ -1,0 +1,16 @@
+app:
+  alias_length: 3
+  omg_filename: '.omg.json'
+
+chain:
+  daemon: 'onomyd'
+  chain_id: 'onomy-testnet-1'
+  address_prefix: 'onomy'
+  valoper_prefix: 'onomyvaloper'
+  address_length: 39
+  denom: 'anom'
+  token: 'nom'
+  decimals: 18
+  default_fee: 4998
+  gas_adjust: 1.5
+  keyring_backend: 'test'
