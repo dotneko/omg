@@ -1,76 +1,19 @@
-package main
+package omg
 
 import (
 	"bufio"
-	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
-	"math"
 	"os"
-	"os/exec"
-	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
-	"omg"
-)
-
-// Project defaults
-var (
-	daemon      = "onomyd"
-	omgFilename = ".omg.json"
-	chainId     = "onomy-testnet-1"
-)
-
-const (
-	denom          string  = "anom"
-	token          string  = "nom"
-	decimals       int     = 18
-	jsonFlag       string  = "--output json"
-	keyringFlag    string  = "--keyring-backend"
-	defaultFee     int     = 4998
-	gasAdjust      float32 = 1.2
-	keyringDefault string  = "test"
+	omg "github.com/dotneko/omg/app"
+	cfg "github.com/dotneko/omg/config"
 )
 
 // Types for JSON unmarshalling
-type BalancesQuery struct {
-	Balances   []DenomAmount
-	Pagination PaginationStruct
-}
-
-type RewardsQuery struct {
-	Rewards []ValidatorReward
-	Total   []DenomAmount
-}
-
-type ValidatorReward struct {
-	ValidatorAddress string `json:"validator_address"`
-	Reward           []DenomAmount
-}
-
-type DenomAmount struct {
-	Denom  string `json:"denom"`
-	Amount string `json:"amount"`
-}
-
-type PaginationStruct struct {
-	NextKey string `json:"next_key"`
-	Total   string `json:"total"`
-}
-
-type KeysListQuery struct {
-	Key []KeyStruct
-}
-type KeyStruct struct {
-	Name    string `json:"name"`
-	Type    string `json:"type"`
-	Address string `json:"address"`
-	Pubkey  string `json:"pubkey"`
-}
 
 func getAliasAddress(r io.Reader, args ...string) (string, string, error) {
 	var alias, address = "", ""
@@ -99,79 +42,22 @@ func getAliasAddress(r io.Reader, args ...string) (string, string, error) {
 	return alias, address, nil
 }
 
-// Convert denom to token amount
-func denomToToken(amt float64) float64 {
-	return amt / math.Pow10(decimals)
-}
-
-// Convert denom to annotated string
-func denomToStr(amt float64) string {
-	return fmt.Sprintf("%.0f%s", amt, denom)
-}
-
-// Convert token amount to denom amount
-func tokenToDenom(amt float64) float64 {
-	return amt * math.Pow10(decimals)
-}
-
-// Strip non-numeric characters and convert to float
-func strToFloat(amtstr string) (float64, error) {
-	var nonNumericRegex = regexp.MustCompile(`[^0-9.]+`)
-	numstr := nonNumericRegex.ReplaceAllString(amtstr, "")
-	amt, err := strconv.ParseFloat(numstr, 64)
-	if err != nil {
-		return -1, err
-	}
-	return amt, nil
-}
-
-// Parse balance
-func getBalances(address string) (float64, error) {
-	cmdStr := fmt.Sprintf("query bank balances %s %s", jsonFlag, address)
-	out, err := exec.Command(daemon, strings.Split(cmdStr, " ")...).Output()
-	if err != nil {
-		return 0, err
-	}
-	if !json.Valid(out) {
-		return 0, errors.New("Invalid json")
-	}
-	var b BalancesQuery
-	if err = json.Unmarshal(out, &b); err != nil {
-		return 0, err
-	}
-	balance, err := strconv.ParseFloat(b.Balances[0].Amount, 64)
-	if err != nil {
-		return 0, err
-	}
-	return balance, nil
-}
-
 // Import address from keyring
-func importFromKeyring(wallet *omg.Wallets, keyring string) (int, error) {
-	cmdStr := fmt.Sprintf("keys list %s %s %s", jsonFlag, keyringFlag, keyring)
-	out, err := exec.Command(daemon, strings.Split(cmdStr, " ")...).Output()
+func importFromKeyring(l *omg.Accounts, keyring string) (int, error) {
+	accounts, err := omg.GetKeyringAccounts(keyring)
+
 	if err != nil {
 		return 0, err
 	}
-	if !json.Valid(out) {
-		return 0, errors.New("Invalid json")
-	}
-	var k []KeyStruct
-	if err = json.Unmarshal(out, &k); err != nil {
-		return 0, err
-	}
-	if len(k) == 0 {
-		fmt.Println("No addresses in keyring")
-		return 0, nil
-	}
+
 	count := 0
-	for _, key := range k {
-		if wallet.GetAddress(key.Name) == "" {
-			wallet.Add(key.Name, key.Address)
+	for _, acc := range accounts {
+		if l.GetAddress(acc.Alias) == "" {
+			l.Add(acc.Alias, acc.Address)
 			count++
-			fmt.Printf("Imported %s [%s]\n", key.Name, key.Address)
+			fmt.Printf("Imported %s [%s]\n", acc.Alias, acc.Address)
 		} else {
-			fmt.Printf("Skip existing key with alias %q [%s]\n", key.Name, key.Address)
+			fmt.Printf("Skip existing key with alias %q [%s]\n", acc.Alias, acc.Address)
 		}
 	}
 	return count, nil
@@ -179,73 +65,34 @@ func importFromKeyring(wallet *omg.Wallets, keyring string) (int, error) {
 
 // Check balance method
 func checkBalances(address string) {
-	balance, _ := getBalances(address)
-	fmt.Printf("Balance = %.0f anom (%8.5f nom)\n", balance, denomToToken(balance))
+	balance, err := omg.GetBalanceAmount(address)
+	if err != nil {
+		fmt.Sprintln(err)
+	}
+	fmt.Printf("Balance = %.0f anom (%8.5f nom)\n", balance, omg.DenomToToken(balance))
 }
 
 // Check reward method
 func checkRewards(address string) {
-	cmdStr := fmt.Sprintf("query distribution rewards %s %s", jsonFlag, address)
-
-	out, err := exec.Command(daemon, strings.Split(cmdStr, " ")...).Output()
+	r, err := omg.GetRewards(address)
 	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	if !json.Valid(out) {
-		fmt.Println("Invalid json")
-	}
-	var r RewardsQuery
-	if err = json.Unmarshal(out, &r); err != nil {
-		fmt.Println(err)
+		fmt.Sprintln(err)
 	}
 	for _, v := range r.Rewards {
-		amt, err := strToFloat(v.Reward[0].Amount)
+		amt, err := omg.StrToFloat(v.Reward[0].Amount)
 		if err != nil {
 			fmt.Println(err)
 		}
-		fmt.Printf("%s - %8.5f nom\n", v.ValidatorAddress, denomToToken(amt))
+		fmt.Printf("%s - %8.5f nom\n", v.ValidatorAddress, omg.DenomToToken(amt))
 	}
 }
 
 // Withdraw all rewards method
 func withdrawRewards(alias string, keyring string, auto bool) {
-
-	cmdStr := fmt.Sprintf("tx distribution withdraw-all-rewards --from %s", alias)
-	cmdStr += fmt.Sprintf(" --fees %d%s --gas auto --gas-adjustment %f", defaultFee, denom, gasAdjust)
-	cmdStr += fmt.Sprintf(" --keyring-backend %s --chain-id %s", keyring, chainId)
-
-	fmt.Printf("Executing: %s %s\n", daemon, cmdStr)
-	cmd := exec.Command(daemon, strings.Split(cmdStr, " ")...)
-
-	if auto {
-		// Auto confirm transaction
-		stdin, err := cmd.StdinPipe()
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-		}
-
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Start(); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-		}
-		// Expect prompt and confirm with 'y'
-		stdin.Write([]byte("y\n"))
-
-		if err := cmd.Wait(); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-		}
-	} else {
-		// Interactive execution
-		cmd.Stdin = os.Stdin
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-		}
+	err := omg.TxWithdrawRewards(alias, keyring, auto)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 	}
-
 }
 
 // Get accounts for transaction from args or stdin
@@ -293,26 +140,30 @@ func getTxAccounts(r io.Reader, action string, args ...string) (string, string, 
 // Get amount from stdin
 func getAmount(r io.Reader, action string, address string, args ...string) (float64, error) {
 	var amount float64 = 0.0
-	balance, _ := getBalances(address)
+	balance, err := omg.GetBalanceAmount(address)
+
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+	}
 	if len(flag.Args()) == 3 {
 		// Check if denom appended
 		argStr := flag.Args()[2]
-		if len(argStr) > 5 && argStr[len(argStr)-4:] == denom {
+		if len(argStr) > 5 && argStr[len(argStr)-4:] == cfg.Denom {
 			amount, err := strconv.ParseFloat(argStr[:len(argStr)-4], 64)
 			if err != nil {
 				return 0, err
 			}
-			fmt.Printf("Requested %.0f%s\n", amount, denom)
+			fmt.Printf("Requested %.0f%s\n", amount, cfg.Denom)
 			if amount < 0 {
 				// Negative amounts represent approx remaining amount after delegation
 				if -amount > balance {
-					return 0, fmt.Errorf("Error: insufficent funds (requested %.0f%s", amount+balance, denom)
+					return 0, fmt.Errorf("Error: insufficent funds (requested %.0f%s", amount+balance, cfg.Denom)
 				}
 				return amount + balance, nil
 
 			}
 			if amount < 0 || amount > balance {
-				return 0, fmt.Errorf("Error: insufficient funds (requested %.0f%s)", amount, denom)
+				return 0, fmt.Errorf("Error: insufficient funds (requested %.0f%s)", amount, cfg.Denom)
 			}
 			return amount, nil
 		}
@@ -321,21 +172,21 @@ func getAmount(r io.Reader, action string, address string, args ...string) (floa
 		if err != nil {
 			fmt.Println(err)
 		}
-		amount = tokenToDenom(amount)
+		amount = omg.TokenToDenom(amount)
 		if amount < 0 {
 			// Negative amounts represent approx remaining amount after delegation
 			if -amount > balance {
-				return 0, fmt.Errorf("Error: insufficient funds (requested %.0f%s)", amount, denom)
+				return 0, fmt.Errorf("Error: insufficient funds (requested %.0f%s)", amount, cfg.Denom)
 			}
 			return balance + amount, nil
 		}
 		if amount > balance {
-			return 0, fmt.Errorf("Error: insufficient funds (requested %.0f%s)", amount, denom)
+			return 0, fmt.Errorf("Error: insufficient funds (requested %.0f%s)", amount, cfg.Denom)
 		}
 		return amount, nil
 	}
 	s := bufio.NewScanner(r)
-	fmt.Printf("Enter amount to %s [%s] : ", action, token)
+	fmt.Printf("Enter amount to %s [%s] : ", action, cfg.Token)
 
 	s.Scan()
 	if err := s.Err(); err != nil {
@@ -354,105 +205,42 @@ func getAmount(r io.Reader, action string, address string, args ...string) (floa
 	}
 	if tokenAmt < 0 {
 		// Negative amounts represent approx remaining amount after action
-		balance, err := getBalances(address)
+		balance, err := omg.GetBalanceAmount(address)
 		if err != nil {
 			return 0, err
 		}
-		amount = balance + tokenToDenom(tokenAmt)
+		amount = balance + omg.TokenToDenom(tokenAmt)
 		if amount <= 0 {
-			return 0, fmt.Errorf("Error: insufficient funds (requested %.0f%s)", amount, denom)
+			return 0, fmt.Errorf("Error: insufficient funds (requested %.0f%s)", amount, cfg.Denom)
 		}
 		return amount, nil
 	}
-	amount = tokenToDenom(tokenAmt)
+	amount = omg.TokenToDenom(tokenAmt)
 	return amount, nil
 }
 
-// Delegate to validator method
+// Delegate to validator
 func delegateToValidator(delegator string, valAddress string, amount float64, keyring string, auto bool) {
-	// fmt.Printf("DelegateToValidator %s %s %s %t\n", delegator, valAddress, denomToStr(amount), auto)
 
-	cmdStr := fmt.Sprintf("tx staking delegate %s %s --from %s", valAddress, denomToStr(amount), delegator)
-	cmdStr += fmt.Sprintf(" --fees %d%s --gas auto --gas-adjustment %f", defaultFee, denom, gasAdjust)
-	cmdStr += fmt.Sprintf(" --keyring-backend %s --chain-id %s", keyring, chainId)
-
-	fmt.Printf("Executing: %s %s\n", daemon, cmdStr)
-	cmd := exec.Command(daemon, strings.Split(cmdStr, " ")...)
-
-	if auto {
-		// Auto confirm transaction
-		stdin, err := cmd.StdinPipe()
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-		}
-
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Start(); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-		}
-		// Expect prompt and confirm with 'y'
-		stdin.Write([]byte("y\n"))
-
-		if err := cmd.Wait(); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-		}
-	} else {
-		// Interactive execution
-		cmd.Stdin = os.Stdin
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-		}
+	err := omg.TxDelegateToValidator(delegator, valAddress, amount, keyring, auto)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 	}
 }
 
 // Send tokens between accounts method
 func txSend(fromAddress string, toAddress string, amount float64, keyring string, auto bool) {
-	// fmt.Printf("DelegateToValidator %s %s %s %t\n", delegator, valAddress, denomToStr(amount), auto)
-
-	cmdStr := fmt.Sprintf("tx bank send %s %s %s", fromAddress, toAddress, denomToStr(amount))
-	//cmdStr += fmt.Sprintf(" --fees %d%s --gas auto --gas-adjustment %f", defaultFee, denom, gasAdjust)
-	cmdStr += fmt.Sprintf("--gas auto --gas-adjustment %f", gasAdjust)
-	cmdStr += fmt.Sprintf(" --keyring-backend %s --chain-id %s", keyring, chainId)
-
-	fmt.Printf("Executing: %s %s\n", daemon, cmdStr)
-	cmd := exec.Command(daemon, strings.Split(cmdStr, " ")...)
-
-	if auto {
-		// Auto confirm transaction
-		stdin, err := cmd.StdinPipe()
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-		}
-
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Start(); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-		}
-		// Expect prompt and confirm with 'y'
-		stdin.Write([]byte("y\n"))
-
-		if err := cmd.Wait(); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-		}
-	} else {
-		// Interactive execution
-		cmd.Stdin = os.Stdin
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-		}
+	err := omg.TxSend(fromAddress, toAddress, amount, keyring, auto)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 	}
 }
 
-func main() {
+func Execute() {
 
-	if os.Getenv("OMG_FILENAME") != "" {
-		omgFilename = os.Getenv("OMG_FILENAME")
+	err := cfg.ParseConfig("../../")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: Cannot load configuration file: %s", err.Error())
 	}
 
 	// Flag usage
@@ -466,11 +254,11 @@ func main() {
 	add := flag.Bool("add", false, "Add [alias] [address] to wallets list")
 	auto := flag.Bool("auto", false, "Auto confirm transaction flag")
 	balances := flag.String("balances", "", "Check bank balances for [alias]")
-	convDenom := flag.String("convd", "", fmt.Sprintf("Convert (%s) to token (%s) amount", denom, token))
-	convToken := flag.String("convt", "", fmt.Sprintf("Convert (%s) to denom (%s) amount", token, denom))
+	convDenom := flag.String("convd", "", fmt.Sprintf("Convert (%s) to token (%s) amount", cfg.Denom, cfg.Token))
+	convToken := flag.String("convt", "", fmt.Sprintf("Convert (%s) to denom (%s) amount", cfg.Token, cfg.Denom))
 	delegate := flag.Bool("delegate", false, "Delegate from [alias] to [validator alias]")
 	importAddrs := flag.Bool("import", false, "Import addresses from keyring")
-	keyring := flag.String("keyring", keyringDefault, "Keyring-backend flag: e.g. test, pass")
+	keyring := flag.String("keyring", cfg.KeyringBackend, "Keyring-backend flag: e.g. test, pass")
 	list := flag.Bool("list", false, "List all accounts")
 	restake := flag.Bool("restake", false, "Restake from [alias] to [validator alias]")
 	rename := flag.Bool("rename", false, "Rename [alias] to [new alias]")
@@ -481,16 +269,15 @@ func main() {
 
 	flag.Parse()
 
-	// Define an wallet list
-	l := &omg.Wallets{}
+	// Define an accounts list
+	l := &omg.Accounts{}
 
-	// Read items from file
-	if err := l.Load(omgFilename); err != nil {
+	// Read from saved address book
+	if err := l.Load(cfg.OmgFilename); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
-	// Decide what to do based on number of arguments provided
 	switch {
 
 	case *add:
@@ -499,31 +286,13 @@ func main() {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		// Require minimum of 3 characters for alias
-		if len(alias) < omg.MinAliasLength {
-			fmt.Fprintln(os.Stderr, "Error: Please use alias of at least 3 characters")
+		err = l.Add(alias, address)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		// Check if valid address
-		if !omg.IsValidAddress(address) {
-			fmt.Fprintln(os.Stderr, "Error: Invalid address")
-			fmt.Fprintf(os.Stderr, "Expecting %s or %s prefixes", omg.AddressPrefix, omg.ValoperPrefix)
-			os.Exit(1)
-		}
-		// Check if alias exists
-		existingAddress := ""
-		for _, a := range *l {
-			if a.Alias == alias {
-				existingAddress = a.Address
-			}
-		}
-		if existingAddress != "" {
-			fmt.Printf("Aborting: %q already exists [%s]\n", alias, existingAddress)
-			os.Exit(1)
-		}
-		l.Add(alias, address)
 		// Save the new list
-		if err := l.Save(omgFilename); err != nil {
+		if err := l.Save(cfg.OmgFilename); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
@@ -538,20 +307,20 @@ func main() {
 		checkBalances(address)
 
 	case *convDenom != "":
-		amt, err := strToFloat(*convDenom)
+		amt, err := omg.StrToFloat(*convDenom)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		fmt.Printf("%f %s\n", denomToToken(amt), token)
+		fmt.Printf("%f %s\n", omg.DenomToToken(amt), cfg.Token)
 
 	case *convToken != "":
-		amt, err := strToFloat(*convToken)
+		amt, err := omg.StrToFloat(*convToken)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
 		}
-		fmt.Printf("%.0f%s", tokenToDenom(amt), denom)
+		fmt.Printf("%.0f%s", omg.TokenToDenom(amt), cfg.Denom)
 
 	case *delegate:
 		delegator, validator, err := getTxAccounts(os.Stdin, "delegate", flag.Args()...)
@@ -566,13 +335,13 @@ func main() {
 			os.Exit(1)
 		}
 		if !omg.IsNormalAddress(delegatorAddress) {
-			fmt.Fprintf(os.Stderr, "Invalid delegator wallet: %s\n", delegatorAddress)
+			fmt.Fprintf(os.Stderr, "Error: invalid delegator address: %s\n", delegatorAddress)
 			os.Exit(1)
 		}
 		// Check if valid validator address
 		valAddress := l.GetAddress(validator)
 		if valAddress == "" {
-			fmt.Fprintf(os.Stderr, "Address not in list\n")
+			fmt.Fprintf(os.Stderr, "Error: no validator matching %q\n", validator)
 			os.Exit(1)
 		}
 		if !omg.IsValidatorAddress(valAddress) {
@@ -598,7 +367,7 @@ func main() {
 		}
 		if num > 0 {
 			// Save the new list
-			if err := l.Save(omgFilename); err != nil {
+			if err := l.Save(cfg.OmgFilename); err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
@@ -621,7 +390,7 @@ func main() {
 	case *restake:
 		// Ensure all arguments provided
 		if len(flag.Args()) != 2 {
-			fmt.Printf("Insufficient arguments. Expecting [delgator] [valdiator]")
+			fmt.Printf("Error: insufficient arguments. Expecting [delgator] [valdiator]")
 			os.Exit(1)
 		}
 		delegator := flag.Args()[0]
@@ -646,22 +415,23 @@ func main() {
 		}
 		// Check balance for delegator
 		fmt.Printf("Delegator %s [%s]\n", delegator, delegatorAddress)
-		balanceBefore, err := getBalances(delegatorAddress)
+		balanceBefore, err := omg.GetBalanceAmount(delegatorAddress)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error getting balance for %s\n", delegator)
 			os.Exit(1)
 		}
-		fmt.Printf("Existing balance: %.0f %s\n", balanceBefore, denom)
+		fmt.Printf("Existing balance: %.0f %s\n", balanceBefore, cfg.Denom)
 		fmt.Printf("Withdrawing rewards for %s [%s]\n", delegator, delegatorAddress)
 		withdrawRewards(delegator, *keyring, *auto)
+
 		// Wait till balance is updated
 		var balance *float64
 		balance = new(float64)
 		count := 0
 		for count <= 10 {
-			*balance, _ = getBalances(delegatorAddress)
+			*balance, _ = omg.GetBalanceAmount(delegatorAddress)
 			if *balance > balanceBefore {
-				fmt.Printf("Updated balance  : %.0f %s\n", *balance, denom)
+				fmt.Printf("Updated balance  : %.0f %s\n", *balance, cfg.Denom)
 				break
 			}
 			count++
@@ -673,14 +443,14 @@ func main() {
 			os.Exit(1)
 		}
 		// Restake amount leaving approx remainder of 1 token
-		amount := *balance - tokenToDenom(1.0)
+		amount := *balance - omg.TokenToDenom(1.0)
 		delegateToValidator(delegator, valAddress, amount, *keyring, *auto)
 
 	case *rename:
 		oldAlias := flag.Args()[0]
 		newAlias := flag.Args()[1]
 
-		if len(newAlias) < omg.MinAliasLength {
+		if len(newAlias) < cfg.MinAliasLength {
 			fmt.Fprintln(os.Stderr, "Error: Please use alias of at least 3 characters")
 			os.Exit(1)
 		}
@@ -690,7 +460,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error: %s", err.Error())
 			os.Exit(1)
 		}
-		err = l.Save(omgFilename)
+		err = l.Save(cfg.OmgFilename)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(1)
@@ -701,8 +471,8 @@ func main() {
 		deleted := false
 		for k, a := range *l {
 			if *rm == a.Alias {
-				l.Delete(k)
-				if err := l.Save(omgFilename); err != nil {
+				l.DeleteIndex(k)
+				if err := l.Save(cfg.OmgFilename); err != nil {
 					fmt.Fprintln(os.Stderr, err)
 					os.Exit(1)
 				}
@@ -742,6 +512,7 @@ func main() {
 		// Check balance for delegator
 		fmt.Printf("From: %s [%s]\n", from, fromAddress)
 		checkBalances(fromAddress)
+		fmt.Printf("To  : %s [%s]\n", to, toAddress)
 
 		amount, err := getAmount(os.Stdin, "send", fromAddress, flag.Args()...)
 		if err != nil {

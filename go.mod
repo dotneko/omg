@@ -1,4 +1,4 @@
-module omg
+module github.com/dotneko/omg
 
 go 1.18
 

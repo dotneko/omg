@@ -1,12 +1,20 @@
-package omg_test
+package app_test
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
-	"omg"
+	omg "github.com/dotneko/omg/app"
+	cfg "github.com/dotneko/omg/config"
 )
 
+func init() {
+	err := cfg.ParseConfig("../")
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+}
 func TestAddressTypes(t *testing.T) {
 	normalAddress := "onomy123456890111111111111111111111111111111"
 	validatorAddress := "onomyvaloper123456890111111111111111111111111111111"
@@ -36,7 +44,7 @@ func TestAddressTypes(t *testing.T) {
 }
 
 func TestAdd(t *testing.T) {
-	l := omg.Wallets{}
+	l := omg.Accounts{}
 
 	alias := "Test1"
 	address := "onomy123456890111111111111111111111111111111"
@@ -50,8 +58,8 @@ func TestAdd(t *testing.T) {
 	}
 }
 
-func TestDelete(t *testing.T) {
-	l := omg.Wallets{}
+func TestDeleteIndex(t *testing.T) {
+	l := omg.Accounts{}
 
 	accounts := []omg.Account{
 		{Alias: "Test1", Address: "onomy123456890111111111111111111111111111111"},
@@ -65,8 +73,8 @@ func TestDelete(t *testing.T) {
 	if l[0].Alias != accounts[0].Alias {
 		t.Errorf("Expected %q, got %q instead.", accounts[0].Alias, l[0].Alias)
 	}
-	l.Delete(2)
 
+	l.DeleteIndex(2)
 	if len(l) != 2 {
 		t.Errorf("Expected list length %d, got %d instead.", 2, len(l))
 	}
@@ -75,10 +83,64 @@ func TestDelete(t *testing.T) {
 		t.Errorf("Expected %q, got %q instead.", accounts[1], l[1])
 	}
 }
+func TestDelete(t *testing.T) {
+	l := omg.Accounts{}
 
+	accounts := []omg.Account{
+		{Alias: "Test1", Address: "onomy123456890111111111111111111111111111111"},
+		{Alias: "Test2", Address: "onomy123456890222222222222222222222222222222"},
+		{Alias: "Test3", Address: "onomy123456890333333333333333333333333333333"},
+	}
+
+	for _, a := range accounts {
+		l.Add(a.Alias, a.Address)
+	}
+	if l[0].Alias != accounts[0].Alias {
+		t.Errorf("Expected %q, got %q instead.", accounts[0].Alias, l[0].Alias)
+	}
+
+	l.Delete("Test1")
+	if len(l) != 2 {
+		t.Errorf("Expected list length %d, got %d instead.", 2, len(l))
+	}
+
+	if l[0] != accounts[1] {
+		t.Errorf("Expected %q, got %q instead.", accounts[1], l[0])
+	}
+
+}
+
+func TestModify(t *testing.T) {
+	l := omg.Accounts{}
+
+	accounts := []omg.Account{
+		{Alias: "Test1", Address: "onomy123456890111111111111111111111111111111"},
+		{Alias: "Test2", Address: "onomy123456890222222222222222222222222222222"},
+		{Alias: "Test3", Address: "onomy123456890333333333333333333333333333333"},
+	}
+
+	for _, a := range accounts {
+		l.Add(a.Alias, a.Address)
+	}
+	if l[0].Alias != accounts[0].Alias {
+		t.Errorf("Expected %q, got %q instead.", accounts[0].Alias, l[0].Alias)
+	}
+
+	newAlias := "Modified2"
+	newAddress := "onomy0987654321111111111111111111111111119992"
+	l.Modify(1, newAlias, newAddress)
+
+	if l[1].Alias != newAlias {
+		t.Errorf("Expected %q, got %q instead.", accounts[1].Alias, newAlias)
+	}
+	if l[1].Address != newAddress {
+		t.Errorf("Expected %q, got %q instead.", accounts[1].Address, newAddress)
+	}
+
+}
 func TestSaveLoad(t *testing.T) {
-	l1 := omg.Wallets{}
-	l2 := omg.Wallets{}
+	l1 := omg.Accounts{}
+	l2 := omg.Accounts{}
 
 	account := omg.Account{Alias: "Test1", Address: "onomy123456890111111111111111111111111111111"}
 
