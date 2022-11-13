@@ -1,4 +1,4 @@
-package omg
+package cli
 
 import (
 	"bufio"
