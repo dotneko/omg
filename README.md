@@ -14,7 +14,7 @@ A command line tool for common user / validator interactions with the Onomy Prot
 
 ## Prerequisites
 
-* Go v1.18
+* Go v1.18+
 * Locally running Onomy full node
 
 ## Installation
@@ -25,19 +25,13 @@ Clone this repo
 git clone https://github.com/dotneko/omg.git
 ```
 
-Change into the `omg/cmd/omg` directory then run `go build .`
-```
-cd omg/cmd/omg
-go build .
-```
+Change into the `omg` directory then run `go build .`
 
 ## Configuration
 
-Set location for wallet data using environmental variable:
+Settings can be modified in `.omgconfig.yaml`
 
-```
-export OMG_FILENAME="/home/user/.omg.json"
-```
+Ensure `.omgconfig.yaml` in home directory or binary path
 
 ## Usage
 
@@ -79,16 +73,26 @@ omg -rewards alias
 
 ### Transactions
 
+By default, transactions will be generated and wait for user confirmation
+
+To bypass confirmation, can append the `-auto` flag after the other command.
+
 #### Send
 ```
 omg -send from_alias to_alias
 ```
 
-#### Withdraw all rewards
+#### Withdraw rewards
+
+Withdraw all rewards
 ```
 omg -wdall alias
 ```
 
+Auto withdraw and bypass confirmation
+```
+omg -wdall alias -auto
+```
 #### Delegate
 
 Delegate amount to be input at prompt after executing
@@ -118,14 +122,18 @@ The following will withdraw all rewards for the account, then delegate *entire b
 ```
 omg -restake alias validator_alias
 ```
+Auto restake (bypass confirmation)
+```
+omg -restake alias validator_alias -auto
+```
 
 ## Conversion
 
 Convert token amount to denom amount
 ```
-omg -convt 1  // Returns 1000000000000000000anom
+omg -cvt 1  // Returns 1000000000000000000anom
 ```
 Convert denom amount to token amount
 ```
-omg -convd 1000000000000000000anom // Returns 1 nom
+omg -cvd 1000000000000000000anom // Returns 1 nom
 ```
