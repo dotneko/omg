@@ -37,8 +37,16 @@ var (
 	KeyringBackend string
 )
 
+func init() {
+	err := ParseConfig("..")
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
 func ParseConfig(pathstr string) error {
 	var cfg Config
+
 	viper.SetConfigName(".omgconfig.yaml")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath("./")
@@ -73,5 +81,6 @@ func ParseConfig(pathstr string) error {
 	DefaultFee = cfg.DefaultFee
 	GasAdjust = cfg.GasAdjust
 	KeyringBackend = cfg.KeyringBackend
+
 	return nil
 }
