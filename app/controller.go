@@ -38,13 +38,29 @@ func TokenToDenom(amt float64) float64 {
 
 // Strip non-numeric characters and convert to float
 func StrToFloat(amtstr string) (float64, error) {
-	var nonNumericRegex = regexp.MustCompile(`[^0-9.]+`)
-	numstr := nonNumericRegex.ReplaceAllString(amtstr, "")
+	var NumericRegex = regexp.MustCompile(`[^0-9.]+`)
+	numstr := NumericRegex.ReplaceAllString(amtstr, "")
 	amt, err := strconv.ParseFloat(numstr, 64)
 	if err != nil {
-		return -1, err
+		return 0, err
 	}
 	return amt, nil
+}
+
+// Split denominated amount to amount and denom
+func StrSplitAmountDenom(amtstr string) (float64, string, error) {
+	var NumericRegex = regexp.MustCompile(`[^0-9.-]+`)
+	var AlphaRegex = regexp.MustCompile(`[^a-zA-z]+`)
+	numstr := NumericRegex.ReplaceAllString(amtstr, "")
+	amt, err := strconv.ParseFloat(numstr, 64)
+	if err != nil {
+		return 0, "", err
+	}
+	denom := AlphaRegex.ReplaceAllString(amtstr, "")
+	if denom != cfg.Denom && denom != cfg.Token {
+		return amt, "", nil
+	}
+	return amt, denom, nil
 }
 
 // Get Balances Query
