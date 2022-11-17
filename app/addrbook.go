@@ -102,7 +102,7 @@ func (l *Accounts) Delete(alias string) error {
 func (l *Accounts) Modify(idx int, alias string, address string) error {
 	ls := *l
 	if idx < 0 || idx >= len(ls) {
-		return fmt.Errorf("Account at index %d does not exist", idx)
+		return fmt.Errorf("Alias/address does not exist\n")
 	}
 	if alias != "" {
 		ls[idx].Alias = alias
