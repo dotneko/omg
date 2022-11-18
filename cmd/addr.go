@@ -23,5 +23,4 @@ List alias and address with command: list`,
 
 func init() {
 	rootCmd.AddCommand(addrCmd)
-
 }
