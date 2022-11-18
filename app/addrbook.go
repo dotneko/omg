@@ -179,3 +179,24 @@ func (l *Accounts) Load(filealias string) error {
 	}
 	return json.Unmarshal(file, l)
 }
+
+// Import addresses from keyring
+func ImportFromKeyring(l *Accounts, keyring string) (int, error) {
+	accounts, err := GetKeyringAccounts(keyring)
+
+	if err != nil {
+		return 0, err
+	}
+
+	count := 0
+	for _, acc := range accounts {
+		if l.GetAddress(acc.Alias) == "" {
+			l.Add(acc.Alias, acc.Address)
+			count++
+			fmt.Printf("Imported %s [%s]\n", acc.Alias, acc.Address)
+		} else {
+			fmt.Printf("Skip existing key with alias %q [%s]\n", acc.Alias, acc.Address)
+		}
+	}
+	return count, nil
+}
