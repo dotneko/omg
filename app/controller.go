@@ -263,9 +263,9 @@ func TxSend(fromAddress string, toAddress string, amount float64, keyring string
 }
 
 // Withdraw all rewards method
-func TxWithdrawRewards(alias string, keyring string, auto bool) error {
+func TxWithdrawRewards(name string, keyring string, auto bool) error {
 
-	cmdStr := fmt.Sprintf("tx distribution withdraw-all-rewards --from %s", alias)
+	cmdStr := fmt.Sprintf("tx distribution withdraw-all-rewards --from %s", name)
 	cmdStr += fmt.Sprintf(" --fees %d%s --gas auto --gas-adjustment %f", cfg.DefaultFee, cfg.Denom, cfg.GasAdjust)
 	cmdStr += fmt.Sprintf(" --keyring-backend %s --chain-id %s", keyring, cfg.ChainId)
 
