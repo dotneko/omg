@@ -17,9 +17,10 @@ import (
 
 // rewardsCmd represents the rewards command
 var rewardsCmd = &cobra.Command{
-	Use:   "rewards [alias]",
-	Short: "rewards [alias] or 'rewards -a' for all accounts",
-	Long:  `Query rewards for an account.`,
+	Aliases: []string{"rw", "r"},
+	Use:     "rewards [alias]",
+	Short:   "rewards [alias] or 'rewards -a' for all accounts",
+	Long:    `Query rewards for an account.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		allAccounts, err := cmd.Flags().GetBool("all")
 		if err != nil {

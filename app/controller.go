@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"os/exec"
@@ -263,13 +264,13 @@ func TxSend(fromAddress string, toAddress string, amount float64, keyring string
 }
 
 // Withdraw all rewards method
-func TxWithdrawRewards(name string, keyring string, auto bool) error {
+func TxWithdrawRewards(out io.Writer, name string, keyring string, auto bool) error {
 
 	cmdStr := fmt.Sprintf("tx distribution withdraw-all-rewards --from %s", name)
 	cmdStr += fmt.Sprintf(" --fees %d%s --gas auto --gas-adjustment %f", cfg.DefaultFee, cfg.Denom, cfg.GasAdjust)
 	cmdStr += fmt.Sprintf(" --keyring-backend %s --chain-id %s", keyring, cfg.ChainId)
 
-	fmt.Printf("Executing: %s %s\n", cfg.Daemon, cmdStr)
+	fmt.Fprintf(out, "Executing: %s %s\n", cfg.Daemon, cmdStr)
 	cmd := exec.Command(cfg.Daemon, strings.Split(cmdStr, " ")...)
 
 	if auto {
@@ -279,8 +280,8 @@ func TxWithdrawRewards(name string, keyring string, auto bool) error {
 			return err
 		}
 
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+		cmd.Stdout = out
+		cmd.Stderr = out
 		if err := cmd.Start(); err != nil {
 			return err
 		}
@@ -293,8 +294,8 @@ func TxWithdrawRewards(name string, keyring string, auto bool) error {
 	} else {
 		// Interactive execution
 		cmd.Stdin = os.Stdin
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+		cmd.Stdout = out
+		cmd.Stderr = out
 		if err := cmd.Run(); err != nil {
 			return err
 		}
