@@ -2,11 +2,8 @@ package app
 
 import (
 	"bufio"
-	"flag"
 	"fmt"
 	"io"
-	"os"
-	"strconv"
 
 	cfg "github.com/dotneko/omg/config"
 )
@@ -82,82 +79,48 @@ func GetTxAccounts(r io.Reader, action string, args ...string) (string, string, 
 
 // Get amount from stdin
 func GetAmount(r io.Reader, action string, address string, args ...string) (float64, error) {
-	var amount float64 = 0.0
-	balance, err := GetBalanceAmount(address)
+	var (
+		amount      float64
+		denom       string
+		denomAmount float64
+		err         error
+	)
+	if len(args) < 3 {
+		// Prompt for amount if no amount provided in args
+		s := bufio.NewScanner(r)
+		fmt.Printf("Enter amount to %s [%s] : ", action, cfg.Token)
 
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-	}
-	if len(flag.Args()) == 3 {
-		// Check if denom appended
-		argStr := flag.Args()[2]
-		if len(argStr) > 5 && argStr[len(argStr)-4:] == cfg.Denom {
-			amount, err := strconv.ParseFloat(argStr[:len(argStr)-4], 64)
-			if err != nil {
-				return 0, err
-			}
-			fmt.Printf("Requested %.0f%s\n", amount, cfg.Denom)
-			if amount < 0 {
-				// Negative amounts represent approx remaining amount after delegation
-				if -amount > balance {
-					return 0, fmt.Errorf("Error: insufficent funds (requested %.0f%s", amount+balance, cfg.Denom)
-				}
-				return amount + balance, nil
-
-			}
-			if amount < 0 || amount > balance {
-				return 0, fmt.Errorf("Error: insufficient funds (requested %.0f%s)", amount, cfg.Denom)
-			}
-			return amount, nil
+		s.Scan()
+		if err = s.Err(); err != nil {
+			return 0, err
 		}
-		// If denom not included, treat as token amount
-		amount, err := strconv.ParseFloat(flag.Args()[2], 64)
-		if err != nil {
-			fmt.Println(err)
-		}
-		amount = TokenToDenom(amount)
-		if amount < 0 {
-			// Negative amounts represent approx remaining amount after delegation
-			if -amount > balance {
-				return 0, fmt.Errorf("Error: insufficient funds (requested %.0f%s)", amount, cfg.Denom)
-			}
-			return balance + amount, nil
-		}
-		if amount > balance {
-			return 0, fmt.Errorf("Error: insufficient funds (requested %.0f%s)", amount, cfg.Denom)
-		}
-		return amount, nil
-	}
-	s := bufio.NewScanner(r)
-	fmt.Printf("Enter amount to %s [%s] : ", action, cfg.Token)
-
-	s.Scan()
-	if err := s.Err(); err != nil {
-		return 0, err
-	}
-	if len(s.Text()) == 0 {
-		return 0.0, fmt.Errorf("Invalid amount")
-	}
-
-	tokenAmt, err := strconv.ParseFloat(s.Text(), 64)
-	if err != nil {
-		return 0, err
-	}
-	if tokenAmt == 0 {
-		return 0, fmt.Errorf("Invalid amount %f", amount)
-	}
-	if tokenAmt < 0 {
-		// Negative amounts represent approx remaining amount after action
-		balance, err := GetBalanceAmount(address)
+		amount, denom, err = StrSplitAmountDenom(s.Text())
+	} else {
+		// Get amount from arguments
+		amount, denom, err = StrSplitAmountDenom(args[2])
 		if err != nil {
 			return 0, err
 		}
-		amount = balance + TokenToDenom(tokenAmt)
-		if amount <= 0 {
-			return 0, fmt.Errorf("Error: insufficient funds (requested %.0f%s)", amount, cfg.Denom)
-		}
-		return amount, nil
 	}
-	amount = TokenToDenom(tokenAmt)
-	return amount, nil
+	if amount == 0 {
+		return 0, fmt.Errorf("Amount cannot be 0")
+	}
+	// Convert to denom amount if token given
+	if denom == cfg.Token {
+		denomAmount = TokenToDenom(amount)
+	} else if denom == cfg.Denom {
+		denomAmount = amount
+	} else {
+		return 0, fmt.Errorf("Invalid denomination - must be: %s / %s)", cfg.Denom, cfg.Token)
+	}
+
+	// Check if sufficient balance
+	balance, err := GetBalanceAmount(address)
+	if err != nil {
+		return 0, err
+	}
+	if denomAmount > balance {
+		return 0, fmt.Errorf("Insufficient funds (requested %.0f%s)", denomAmount, cfg.Denom)
+	}
+	return denomAmount, nil
 }
