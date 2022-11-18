@@ -19,7 +19,7 @@ import (
 var balancesCmd = &cobra.Command{
 	Aliases: []string{"bal", "b"},
 	Use:     "balances [alias]",
-	Short:   "balances [alias] or balances -a for all accounts",
+	Short:   "balances [alias] or 'balances -a' for all accounts",
 	Long:    `Query balances for an account or all normal accounts.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		allAccounts, err := cmd.Flags().GetBool("all")
