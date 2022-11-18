@@ -95,6 +95,15 @@ func GetBalanceAmount(address string) (float64, error) {
 	return amt, nil
 }
 
+// Check balance method
+func CheckBalances(address string) {
+	balance, err := GetBalanceAmount(address)
+	if err != nil {
+		fmt.Sprintln(err)
+	}
+	fmt.Printf("Balance = %.0f anom (%8.5f nom)\n", balance, DenomToToken(balance))
+}
+
 // Get keyring name and addresses
 func GetKeyringAccounts(keyring string) (Accounts, error) {
 

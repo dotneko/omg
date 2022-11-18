@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	omg "github.com/dotneko/omg/app"
@@ -17,35 +18,53 @@ import (
 var listCmd = &cobra.Command{
 	Aliases: []string{"l"},
 	Use:     "list",
-	Short:   "Lists addresses and their aliases",
+	Short:   "List addresses",
 	Long:    `Lists addresses and their aliases`,
-	Run: func(cmd *cobra.Command, args []string) {
-
-		l := &omg.Accounts{}
-
-		// Read from saved address book
-		if err := l.Load(cfg.OmgFilename); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		filterNormal, err := cmd.Flags().GetBool("normal")
+		if err != nil {
+			return err
 		}
-		if len(*l) == 0 {
-			fmt.Println("No accounts in store")
-		} else {
-			fmt.Print(l)
+		filterValoper, err := cmd.Flags().GetBool("validator")
+		if err != nil {
+			return err
 		}
+		addressOnly, err := cmd.Flags().GetBool("address")
+		if err != nil {
+			return err
+		}
+		filterAddrType := ""
+		if filterNormal && !filterValoper {
+			filterAddrType = omg.AccNormal
+		} else if filterValoper && !filterNormal {
+			filterAddrType = omg.AccValoper
+		}
+		return listAction(os.Stdout, filterAddrType, addressOnly, args)
 	},
 }
 
 func init() {
 	addrCmd.AddCommand(listCmd)
 
-	// Here you will define your flags and configuration settings.
+	listCmd.Flags().BoolP("address", "a", false, "List addresses only")
+	listCmd.Flags().BoolP("normal", "n", false, "Select normal accounts")
+	listCmd.Flags().BoolP("validator", "v", false, "Select validator accounts")
+}
 
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// listCmd.PersistentFlags().String("foo", "", "A help for foo")
+func listAction(out io.Writer, filterAccount string, addressOnly bool, args []string) error {
+	l := &omg.Accounts{}
 
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// listCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// Read from saved address book
+	if err := l.Load(cfg.OmgFilename); err != nil {
+		return err
+	}
+	if len(*l) == 0 {
+		return fmt.Errorf("No accounts in store")
+	}
+	if filterAccount == "" && !addressOnly {
+		fmt.Fprint(out, l)
+		return nil
+	}
+	fmt.Fprint(out, l.ListFiltered(filterAccount, addressOnly))
+	return nil
 }

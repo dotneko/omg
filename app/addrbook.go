@@ -17,7 +17,9 @@ type Account struct {
 type Accounts []Account
 
 const (
-	bech32len int = 39
+	bech32len  int = 39
+	AccNormal      = "normal"
+	AccValoper     = "valoper"
 )
 
 // Checks if address is a validator account
@@ -51,6 +53,26 @@ func (l *Accounts) String() string {
 	formatted := ""
 	for k, a := range *l {
 		formatted += fmt.Sprintf("%2d: %15s [%s]\n", k, a.Alias, a.Address)
+	}
+	return formatted
+}
+
+func (l *Accounts) ListFiltered(accountType string, addressOnly bool) string {
+	formatted := ""
+	for k, a := range *l {
+		include := true
+		if accountType == AccNormal {
+			include = IsNormalAddress(a.Address)
+		} else if accountType == AccValoper {
+			include = IsValidatorAddress(a.Address)
+		}
+		if include {
+			if addressOnly {
+				formatted += a.Address + "\n"
+			} else {
+				formatted += fmt.Sprintf("%2d: %15s [%s]\n", k, a.Alias, a.Address)
+			}
+		}
 	}
 	return formatted
 }
