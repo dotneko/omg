@@ -62,3 +62,25 @@ func TestStrSplitAmountDenom(t *testing.T) {
 		}
 	}
 }
+
+func TestPrettifyDenom(t *testing.T) {
+	type insertTest struct {
+		amt float64
+		out string
+	}
+	var testOutputs = []insertTest{
+		{1, "1"},
+		{999, "999"},
+		{1000, "1,000"},
+		{100099, "100,099"},
+		{1000000, "1,000,000"},
+		{99999999, "99,999,999"},
+		{1000000000000000000, "1,000,000,000,000,000,000"},
+	}
+	for _, test := range testOutputs {
+		output := omg.PrettifyDenom(test.amt)
+		if test.out != output {
+			t.Errorf("Expected %s; instead got %s\n", test.out, output)
+		}
+	}
+}

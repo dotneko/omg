@@ -63,6 +63,36 @@ func StrSplitAmountDenom(amtstr string) (float64, string, error) {
 	return amt, denom, nil
 }
 
+// Insert separator for non-decimal numbers as output
+func PrettifyDenom(amt float64) string {
+	amtStr := strconv.FormatFloat(amt, 'f', 0, 64)
+	if amt < 1000 {
+		return amtStr
+	}
+	separator := ","
+	startIdx := len(amtStr) % 3
+	if startIdx == 0 {
+		startIdx = 3
+	}
+	outStr := amtStr[:startIdx]
+	pos := startIdx
+	for pos < len(amtStr) {
+		outStr = outStr + separator + amtStr[pos:pos+3]
+		pos = pos + 3
+	}
+	return outStr
+}
+
+func PrettifyAmount(amount float64, denom string) string {
+	if denom == cfg.Denom {
+		return fmt.Sprintf("%s %s", PrettifyDenom(amount), denom)
+	}
+	if denom == cfg.Token {
+		return fmt.Sprintf("%.18f %s", amount, denom)
+	}
+	return ""
+}
+
 // Get Balances Query
 func GetBalancesQuery(address string) (*types.BalancesQuery, error) {
 	cmdStr := fmt.Sprintf("query bank balances %s %s", jsonFlag, address)
@@ -197,7 +227,7 @@ func TxSend(fromAddress string, toAddress string, amount float64, keyring string
 
 	cmdStr := fmt.Sprintf("tx bank send %s %s %s", fromAddress, toAddress, DenomToStr(amount))
 	//cmdStr += fmt.Sprintf(" --fees %d%s --gas auto --gas-adjustment %f", defaultFee, denom, gasAdjust)
-	cmdStr += fmt.Sprintf("--gas auto --gas-adjustment %f", cfg.GasAdjust)
+	cmdStr += fmt.Sprintf(" --gas auto --gas-adjustment %f", cfg.GasAdjust)
 	cmdStr += fmt.Sprintf(" --keyring-backend %s --chain-id %s", keyring, cfg.ChainId)
 
 	fmt.Printf("Executing: %s %s\n", cfg.Daemon, cmdStr)
