@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	omg "github.com/dotneko/omg/app"
@@ -17,44 +18,68 @@ import (
 // rewardsCmd represents the rewards command
 var rewardsCmd = &cobra.Command{
 	Use:   "rewards [alias]",
-	Short: "Query rewards for an account",
+	Short: "rewards [alias] or 'rewards -a' for all accounts",
 	Long:  `Query rewards for an account.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		l := &omg.Accounts{}
-
-		if err := l.Load(cfg.OmgFilename); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-		address := l.GetAddress(args[0])
-		if address == "" {
-			fmt.Printf("Error: account %q not found.\n", args[0])
-			os.Exit(1)
-		}
-		r, err := omg.GetRewards(address)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		allAccounts, err := cmd.Flags().GetBool("all")
 		if err != nil {
-			fmt.Sprintln(err)
+			return err
 		}
-		for _, v := range r.Rewards {
-			amt, err := omg.StrToFloat(v.Reward[0].Amount)
-			if err != nil {
-				fmt.Println(err)
-			}
-			fmt.Printf("%s - %8.5f nom\n", v.ValidatorAddress, omg.DenomToToken(amt))
-		}
+		return rewardsAction(os.Stdout, allAccounts, args)
 	},
 }
 
 func init() {
 	queryCmd.AddCommand(rewardsCmd)
 
-	// Here you will define your flags and configuration settings.
+	rewardsCmd.Flags().BoolP("all", "a", false, "Check all accounts in address book")
+}
 
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// rewardsCmd.PersistentFlags().String("foo", "", "A help for foo")
+func rewardsAction(out io.Writer, allAccounts bool, args []string) error {
+	l := &omg.Accounts{}
 
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// rewardsCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	if err := l.Load(cfg.OmgFilename); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	if allAccounts {
+		for _, acc := range *l {
+			if omg.IsNormalAddress(acc.Address) {
+				r, err := omg.GetRewards(acc.Address)
+				if err != nil {
+					return err
+				}
+				fmt.Printf("Rewards for %10s [%s]:\n", acc.Alias, acc.Address)
+				for _, v := range r.Rewards {
+					amt, err := omg.StrToFloat(v.Reward[0].Amount)
+					if err != nil {
+						fmt.Println(err)
+					}
+					fmt.Printf(" - %s - %8.5f %s\n", v.ValidatorAddress, omg.DenomToToken(amt), cfg.Token)
+				}
+				fmt.Println()
+			}
+		}
+		return nil
+	}
+	if len(args) == 0 {
+		return fmt.Errorf("No account provided.\n")
+	}
+	address := l.GetAddress(args[0])
+	if address == "" {
+		return fmt.Errorf("Aaccount %q not found.\n", args[0])
+	}
+	r, err := omg.GetRewards(address)
+	if err != nil {
+		return err
+	}
+	for _, v := range r.Rewards {
+		amt, err := omg.StrToFloat(v.Reward[0].Amount)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("%s - %8.5f nom\n", v.ValidatorAddress, omg.DenomToToken(amt))
+	}
+	return nil
 }
