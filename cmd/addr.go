@@ -10,8 +10,9 @@ import (
 
 // addrCmd represents the addr command
 var addrCmd = &cobra.Command{
-	Use:   "addr [command]",
-	Short: "Manage the address book",
+	Aliases: []string{"ad", "a"},
+	Use:     "addr [command]",
+	Short:   "Manage the address book",
 	Long: `Manage the address book
 	
 Add addresses with command: add [alias] [address]

@@ -16,7 +16,7 @@ import (
 
 // wdrewardsCmd represents the wdrewards command
 var wdrewardsCmd = &cobra.Command{
-	Aliases: []string{"wdall", "wd"},
+	Aliases: []string{"wdall", "wd", "w"},
 	Use:     "wdrewards [alias]",
 	Short:   "Withdraw all rewards",
 	Long:    `Withdraw all rewards for account`,
@@ -52,7 +52,7 @@ func wdrewardsAction(out io.Writer, keyring string, auto bool, args []string) er
 	if !omg.IsNormalAddress(address) {
 		return fmt.Errorf("%s is not a normal account", args[0])
 	}
-	err := omg.TxWithdrawRewards(args[0], keyring, auto)
+	err := omg.TxWithdrawRewards(out, args[0], keyring, auto)
 	if err != nil {
 		return err
 	}
