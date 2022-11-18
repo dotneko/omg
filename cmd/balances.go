@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	omg "github.com/dotneko/omg/app"
@@ -16,39 +17,55 @@ import (
 
 // balancesCmd represents the balances command
 var balancesCmd = &cobra.Command{
-	Use:   "balances [alias]",
-	Short: "Query balances for an account",
-	Long:  `Query balances for an account.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		l := &omg.Accounts{}
-
-		if err := l.Load(cfg.OmgFilename); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-		address := l.GetAddress(args[0])
-		if address == "" {
-			fmt.Printf("Error: account %q not found.\n", args[0])
-			os.Exit(1)
-		}
-		balance, err := omg.GetBalanceAmount(address)
+	Aliases: []string{"bal", "b"},
+	Use:     "balances [alias]",
+	Short:   "balances [alias] or balances -a for all accounts",
+	Long:    `Query balances for an account or all normal accounts.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		allAccounts, err := cmd.Flags().GetBool("all")
 		if err != nil {
-			fmt.Sprintln(err)
+			return err
 		}
-		fmt.Printf("Balance = %.0f%s (~%.10f %s)\n", balance, cfg.Denom, omg.DenomToToken(balance), cfg.Token)
+		return balancesAction(os.Stdout, allAccounts, args)
 	},
 }
 
 func init() {
 	queryCmd.AddCommand(balancesCmd)
 
-	// Here you will define your flags and configuration settings.
+	balancesCmd.Flags().BoolP("all", "a", false, "List balances for all accounts")
 
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// balancesCmd.PersistentFlags().String("foo", "", "A help for foo")
+}
 
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// balancesCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+func balancesAction(out io.Writer, allAccounts bool, args []string) error {
+	l := &omg.Accounts{}
+
+	if err := l.Load(cfg.OmgFilename); err != nil {
+		return err
+	}
+	if allAccounts {
+		for _, acc := range *l {
+			if omg.IsNormalAddress(acc.Address) {
+				balance, err := omg.GetBalanceAmount(acc.Address)
+				if err != nil {
+					return err
+				}
+				fmt.Printf("%10s [%s]: %.0f%s (~%.10f %s)\n", acc.Alias, acc.Address, balance, cfg.Denom, omg.DenomToToken(balance), cfg.Token)
+			}
+		}
+		return nil
+	}
+	if len(args) == 0 {
+		return fmt.Errorf("No account provided.\n")
+	}
+	address := l.GetAddress(args[0])
+	if address == "" {
+		return fmt.Errorf("Account %q not found.\n", args[0])
+	}
+	balance, err := omg.GetBalanceAmount(address)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("%10s [%s]: %.0f%s (~%.10f %s)\n", args[0], address, balance, cfg.Denom, omg.DenomToToken(balance), cfg.Token)
+	return nil
 }
