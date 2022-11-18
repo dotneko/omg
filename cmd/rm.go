@@ -21,7 +21,7 @@ var rmCmd = &cobra.Command{
 	Short: "Delete an address its alias",
 	Long:  `Delege an entry from the address book based on its alias.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		rmAction(os.Stdout, args)
+		return rmAction(os.Stdout, args)
 	},
 }
 
@@ -49,4 +49,5 @@ func rmAction(out io.Writer, args []string) error {
 	if !deleted {
 		return fmt.Errorf("%q not found.", args[0])
 	}
+	return nil
 }
