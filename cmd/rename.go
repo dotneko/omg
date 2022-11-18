@@ -6,66 +6,60 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	omg "github.com/dotneko/omg/app"
 	cfg "github.com/dotneko/omg/config"
-
 	"github.com/spf13/cobra"
 )
 
 // renameCmd represents the rename command
 var renameCmd = &cobra.Command{
-	Use:   "rename [alias] [new alias]",
-	Short: "Rename an alias",
-	Long: `Rename an alias. For example:
-
-omg rename nbuser newuser
-	`,
-	Run: func(cmd *cobra.Command, args []string) {
-		l := &omg.Accounts{}
-
-		// Read from saved address book
-		if err := l.Load(cfg.OmgFilename); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-		if len(*l) == 0 {
-			fmt.Println("No accounts in store")
-			os.Exit(1)
-		}
-		oldAlias := args[0]
-		newAlias := args[1]
-
-		if len(newAlias) < cfg.MinAliasLength {
-			fmt.Fprintln(os.Stderr, "Error: Please use alias of at least 3 characters")
-			os.Exit(1)
-		}
-		idx := l.GetIndex(oldAlias)
-		err := l.Modify(idx, newAlias, "")
+	Aliases: []string{"ren", "mv"},
+	Use:     "rename [alias] [new alias]",
+	Short:   "Rename an alias",
+	Long:    `Rename an alias. For example:`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		address, err := cmd.Flags().GetString("address")
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %s", err.Error())
-			os.Exit(0)
+			return err
 		}
-		err = l.Save(cfg.OmgFilename)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-		fmt.Printf("Renamed: %q to %q\n", oldAlias, newAlias)
+		return renameAction(os.Stdout, address, args)
 	},
 }
 
 func init() {
 	addrCmd.AddCommand(renameCmd)
 
-	// Here you will define your flags and configuration settings.
+	renameCmd.Flags().StringP("address", "a", "", "Address to modify to")
+}
 
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// renameCmd.PersistentFlags().String("foo", "", "A help for foo")
+func renameAction(out io.Writer, address string, args []string) error {
+	l := &omg.Accounts{}
 
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// renameCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// Read from saved address book
+	if err := l.Load(cfg.OmgFilename); err != nil {
+		return err
+	}
+	if len(*l) == 0 {
+		return fmt.Errorf("No accounts in store")
+	}
+	oldAlias := args[0]
+	newAlias := args[1]
+
+	if len(newAlias) < cfg.MinAliasLength {
+		return fmt.Errorf("Please use alias of at least 3 characters")
+	}
+	idx := l.GetIndex(oldAlias)
+	err := l.Modify(idx, newAlias, address)
+	if err != nil {
+		return err
+	}
+	err = l.Save(cfg.OmgFilename)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(out, "Renamed: %q to %q\n", oldAlias, newAlias)
+	return nil
 }

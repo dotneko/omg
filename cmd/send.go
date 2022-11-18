@@ -68,11 +68,11 @@ func sendAction(out io.Writer, auto bool, keyring string, args []string) error {
 		return err
 	}
 	// Check balance for delegator
-	fmt.Printf("To   : %s [%s]\n", to, toAddress)
-	fmt.Printf("From : %s [%s]\n", from, fromAddress)
+	fmt.Fprintf(out, "To   : %s [%s]\n", to, toAddress)
+	fmt.Fprintf(out, "From : %s [%s]\n", from, fromAddress)
 	omg.CheckBalances(fromAddress)
 
-	fmt.Printf("Amount requested: %s\n", omg.PrettifyAmount(amount, cfg.Denom))
+	fmt.Fprintf(out, "Amount requested: %s\n", omg.PrettifyAmount(amount, cfg.Denom))
 
 	err = omg.TxSend(fromAddress, toAddress, amount, keyring, auto)
 	if err != nil {

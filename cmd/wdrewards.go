@@ -56,6 +56,5 @@ func wdrewardsAction(out io.Writer, keyring string, auto bool, args []string) er
 	if err != nil {
 		return err
 	}
-
 	return nil
 }

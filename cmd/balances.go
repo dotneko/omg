@@ -34,7 +34,6 @@ func init() {
 	queryCmd.AddCommand(balancesCmd)
 
 	balancesCmd.Flags().BoolP("all", "a", false, "List balances for all accounts")
-
 }
 
 func balancesAction(out io.Writer, allAccounts bool, args []string) error {

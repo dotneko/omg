@@ -15,7 +15,7 @@ import (
 
 // importCmd represents the import command
 var importCmd = &cobra.Command{
-	Aliases: []string{"imp"},
+	Aliases: []string{"imp", "i"},
 	Use:     "import",
 	Short:   "Import addresses from keyring",
 	Long:    `Import addresses from keyring`,

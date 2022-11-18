@@ -40,8 +40,7 @@ func rewardsAction(out io.Writer, allAccounts bool, args []string) error {
 	l := &omg.Accounts{}
 
 	if err := l.Load(cfg.OmgFilename); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		return err
 	}
 
 	if allAccounts {
@@ -55,11 +54,11 @@ func rewardsAction(out io.Writer, allAccounts bool, args []string) error {
 				for _, v := range r.Rewards {
 					amt, err := omg.StrToFloat(v.Reward[0].Amount)
 					if err != nil {
-						fmt.Println(err)
+						return err
 					}
-					fmt.Printf(" - %s - %8.5f %s\n", v.ValidatorAddress, omg.DenomToToken(amt), cfg.Token)
+					fmt.Fprintf(out, " - %s - %8.5f %s\n", v.ValidatorAddress, omg.DenomToToken(amt), cfg.Token)
 				}
-				fmt.Println()
+				fmt.Fprintln(out)
 			}
 		}
 		return nil
@@ -80,7 +79,7 @@ func rewardsAction(out io.Writer, allAccounts bool, args []string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("%s - %8.5f nom\n", v.ValidatorAddress, omg.DenomToToken(amt))
+		fmt.Fprintf(out, "%s - %8.5f nom\n", v.ValidatorAddress, omg.DenomToToken(amt))
 	}
 	return nil
 }

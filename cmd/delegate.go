@@ -18,9 +18,10 @@ import (
 
 // delegateCmd represents the delegate command
 var delegateCmd = &cobra.Command{
-	Use:   "delegate [account] [validator] [amount][denom]",
-	Short: "delegate [account] [validator] [amount][denom]",
-	Long:  `Delegate tokens from account to validator.`,
+	Aliases: []string{"del"},
+	Use:     "delegate [account] [validator] [amount][denom]",
+	Short:   "delegate [account] [validator] [amount][denom]",
+	Long:    `Delegate tokens from account to validator.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		keyring, err := cmd.Flags().GetString("keyring")
 		if err != nil {
@@ -65,13 +66,12 @@ func delegateAction(out io.Writer, keyring string, auto bool, args []string) err
 		return fmt.Errorf("Invalid validator address %s\n", valAddress)
 	}
 	// Check balance for delegator
-	fmt.Printf("Delegator %s [%s]\n", delegator, delegatorAddress)
+	fmt.Fprintf(out, "Delegator %s [%s]\n", delegator, delegatorAddress)
 	omg.CheckBalances(delegatorAddress)
 
 	amount, err := omg.GetAmount(os.Stdin, "delegate", delegatorAddress, flag.Args()...)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+		return err
 	}
 	omg.TxDelegateToValidator(delegator, valAddress, amount, keyring, auto)
 

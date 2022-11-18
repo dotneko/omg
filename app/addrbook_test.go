@@ -18,7 +18,8 @@ func init() {
 func TestAddressTypes(t *testing.T) {
 	normalAddress := "onomy123456890111111111111111111111111111111"
 	validatorAddress := "onomyvaloper123456890111111111111111111111111111111"
-	invalidAddress := "cosmosnotavalidaddress0000000000000000000000"
+	invalidPrefix := "cosmosnotavalidaddress0000000000000000000000"
+	invalidLength := "onomy1234568901111111111111111111111111111119"
 	type typeTest struct {
 		address     string
 		isNormal    bool
@@ -28,7 +29,8 @@ func TestAddressTypes(t *testing.T) {
 	var typeTests = []typeTest{
 		{normalAddress, true, false, true},
 		{validatorAddress, false, true, true},
-		{invalidAddress, false, false, false},
+		{invalidPrefix, false, false, false},
+		{invalidLength, false, false, false},
 	}
 	for _, test := range typeTests {
 		if omg.IsNormalAddress(test.address) != test.isNormal {
@@ -127,7 +129,8 @@ func TestModify(t *testing.T) {
 	}
 
 	newAlias := "Modified2"
-	newAddress := "onomy0987654321111111111111111111111111119992"
+	newAddress := "onomy098765432111111111111111111111111111992"
+	invalidAddress := "onomy098765432111111111111111111111111111992invalid"
 	l.Modify(1, newAlias, newAddress)
 
 	if l[1].Alias != newAlias {
@@ -135,6 +138,10 @@ func TestModify(t *testing.T) {
 	}
 	if l[1].Address != newAddress {
 		t.Errorf("Expected %q, got %q instead.", accounts[1].Address, newAddress)
+	}
+	l.Modify(1, newAlias, invalidAddress)
+	if l[1].Address == invalidAddress {
+		t.Errorf("Expected %q, got %q instead.", accounts[1].Address, invalidAddress)
 	}
 
 }

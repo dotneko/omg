@@ -11,12 +11,10 @@ import (
 
 // txCmd represents the tx command
 var txCmd = &cobra.Command{
-	Use:   "tx",
-	Short: "Execute a transaction",
-	Long:  `Execute a transaction.`,
-	// Run: func(cmd *cobra.Command, args []string) {
-	// 	fmt.Println("tx called")
-	// },
+	Aliases: []string{"t"},
+	Use:     "tx",
+	Short:   "Execute a transaction",
+	Long:    `Execute a transaction.`,
 }
 
 func init() {

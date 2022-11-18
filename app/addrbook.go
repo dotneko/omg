@@ -129,7 +129,7 @@ func (l *Accounts) Modify(idx int, alias string, address string) error {
 	if alias != "" {
 		ls[idx].Alias = alias
 	}
-	if address != "" {
+	if IsValidAddress(address) {
 		ls[idx].Address = address
 	}
 	*l = ls

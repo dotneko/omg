@@ -6,6 +6,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	omg "github.com/dotneko/omg/app"
@@ -16,8 +17,9 @@ import (
 
 // addCmd represents the add command
 var addCmd = &cobra.Command{
-	Use:   "add [alias] [address]",
-	Short: "Adds an address to the address book",
+	Aliases: []string{"a"},
+	Use:     "add [alias] [address]",
+	Short:   "Adds an address to the address book",
 	Long: `Adds an address to the address book. For example:
 
 Adding a normal address:
@@ -29,30 +31,8 @@ omg add validator onomyvaloper12345678901234567890123456789
 If no alias and address provided, the an input prompt will ask
 for the alias and address.
 `,
-	Run: func(cmd *cobra.Command, args []string) {
-		l := &omg.Accounts{}
-
-		// Read from saved address book
-		if err := l.Load(cfg.OmgFilename); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-		alias, address, err := omg.GetAliasAddress(os.Stdin, args...)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-		err = l.Add(alias, address)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-		// Save the new list
-		if err := l.Save(cfg.OmgFilename); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
-		}
-		fmt.Printf("Added %q, %q to wallets\n", alias, address)
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return addAction(os.Stdout, args)
 	},
 }
 
@@ -68,4 +48,27 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// addCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}
+
+func addAction(out io.Writer, args []string) error {
+	l := &omg.Accounts{}
+
+	// Read from saved address book
+	if err := l.Load(cfg.OmgFilename); err != nil {
+		return err
+	}
+	alias, address, err := omg.GetAliasAddress(os.Stdin, args...)
+	if err != nil {
+		return err
+	}
+	err = l.Add(alias, address)
+	if err != nil {
+		return err
+	}
+	// Save the new list
+	if err := l.Save(cfg.OmgFilename); err != nil {
+		return err
+	}
+	fmt.Printf("Added %q, %q to wallets\n", alias, address)
+	return nil
 }

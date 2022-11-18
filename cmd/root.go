@@ -45,30 +45,4 @@ func init() {
 }
 
 func initConfig() {
-	// err := omg.ParseConfig("../")
-	// if err != nil {
-	// 	fmt.Fprintln(os.Stderr, err)
-	// }
-
-	// viper.SetConfigName(".omgconfig.yaml")
-	// viper.SetConfigType("yaml")
-	// viper.AddConfigPath("./")
-
-	// // Check given pathstr if valid path
-	// // _, err := os.Stat(pathstr)
-	// // if err == nil {
-	// // 	viper.AddConfigPath(pathstr)
-	// // }
-	// // Check home directory
-	// home, _ := os.UserHomeDir()
-	// viper.AddConfigPath(home)
-
-	// err := viper.ReadInConfig()
-	// if err != nil {
-	// 	fmt.Printf("Error reading configuration, %s", err.Error())
-	// }
-	// err = viper.Unmarshal()
-	// if err != nil {
-	// 	return fmt.Errorf(err.Error())
-	// }
 }
