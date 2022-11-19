@@ -18,9 +18,9 @@ import (
 // balancesCmd represents the balances command
 var balancesCmd = &cobra.Command{
 	Aliases: []string{"bal", "b"},
-	Use:     "balances [alias]",
-	Short:   "balances [alias] or 'balances -a' for all accounts",
-	Long:    `Query balances for an account or all normal accounts.`,
+	Use:     "balances [alias | address]",
+	Short:   "Query balances for an account or address",
+	Long:    `Query balances for an account or address.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		allAccounts, err := cmd.Flags().GetBool("all")
 		if err != nil {
@@ -49,7 +49,7 @@ func balancesAction(out io.Writer, allAccounts bool, args []string) error {
 				if err != nil {
 					return err
 				}
-				fmt.Printf("%10s [%s]: %.0f%s (~%.10f %s)\n", acc.Alias, acc.Address, balance, cfg.Denom, omg.DenomToToken(balance), cfg.Token)
+				fmt.Fprintf(out, "%10s [%s]: %.0f%s (~%.10f %s)\n", acc.Alias, acc.Address, balance, cfg.Denom, omg.DenomToToken(balance), cfg.Token)
 			}
 		}
 		return nil
@@ -57,7 +57,15 @@ func balancesAction(out io.Writer, allAccounts bool, args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("No account provided.\n")
 	}
-	address := l.GetAddress(args[0])
+	var address string
+	var header string
+	if omg.IsNormalAddress(args[0]) {
+		address = args[0]
+		header = ""
+	} else {
+		address = l.GetAddress(args[0])
+		header = fmt.Sprintf("%10s [%s]:", args[0], address)
+	}
 	if address == "" {
 		return fmt.Errorf("Account %q not found.\n", args[0])
 	}
@@ -65,6 +73,6 @@ func balancesAction(out io.Writer, allAccounts bool, args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%10s [%s]: %.0f%s (~%.10f %s)\n", args[0], address, balance, cfg.Denom, omg.DenomToToken(balance), cfg.Token)
+	fmt.Fprintf(out, header+"%.0f%s (~%.10f %s)\n", balance, cfg.Denom, omg.DenomToToken(balance), cfg.Token)
 	return nil
 }

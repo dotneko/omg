@@ -18,9 +18,9 @@ import (
 // rewardsCmd represents the rewards command
 var rewardsCmd = &cobra.Command{
 	Aliases: []string{"rw", "r"},
-	Use:     "rewards [alias]",
-	Short:   "rewards [alias] or 'rewards -a' for all accounts",
-	Long:    `Query rewards for an account.`,
+	Use:     "rewards [name | address]",
+	Short:   "Query rewards for an account or address",
+	Long:    `Query rewards for an account or address.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		allAccounts, err := cmd.Flags().GetBool("all")
 		if err != nil {
@@ -64,11 +64,16 @@ func rewardsAction(out io.Writer, allAccounts bool, args []string) error {
 		return nil
 	}
 	if len(args) == 0 {
-		return fmt.Errorf("No account provided.\n")
+		return fmt.Errorf("No account/address provided.\n")
 	}
-	address := l.GetAddress(args[0])
-	if address == "" {
-		return fmt.Errorf("Aaccount %q not found.\n", args[0])
+	var address string
+	if omg.IsNormalAddress(args[0]) {
+		address = args[0]
+	} else {
+		address = l.GetAddress(args[0])
+		if address == "" {
+			return fmt.Errorf("Account %q not found.\n", args[0])
+		}
 	}
 	r, err := omg.GetRewards(address)
 	if err != nil {
@@ -79,7 +84,7 @@ func rewardsAction(out io.Writer, allAccounts bool, args []string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(out, "%s - %8.5f nom\n", v.ValidatorAddress, omg.DenomToToken(amt))
+		fmt.Fprintf(out, "%s - %8.5f %s\n", v.ValidatorAddress, omg.DenomToToken(amt), cfg.Token)
 	}
 	return nil
 }

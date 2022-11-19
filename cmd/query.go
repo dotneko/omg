@@ -11,9 +11,18 @@ import (
 // queryCmd represents the query command
 var queryCmd = &cobra.Command{
 	Aliases: []string{"q"},
-	Use:     "query [balance/reward] [alias]",
-	Short:   "Query balance or reward for an address/alias",
-	Long:    `Query balance or reward for an address/alias.`,
+	Use:     "query [balances | rewards] [name]",
+	Short:   "Query balances or rewards for an name/address",
+	Long: `Query balances or rewards for an name/address.
+	
+Examples:
+# omg query balances user1
+# omg query rewards user1
+
+To query all entries in address book:
+# omg query balances -a
+# omg query rewards -a
+`,
 }
 
 func init() {
