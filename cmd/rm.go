@@ -18,8 +18,8 @@ import (
 // rmCmd represents the rm command
 var rmCmd = &cobra.Command{
 	Use:   "rm [alias]",
-	Short: "Delete an address its alias",
-	Long:  `Delege an entry from the address book based on its alias.`,
+	Short: "Delete an address book entry",
+	Long:  `Delete an address book entry`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return rmAction(os.Stdout, args)
 	},

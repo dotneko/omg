@@ -18,19 +18,28 @@ import (
 // addCmd represents the add command
 var addCmd = &cobra.Command{
 	Aliases: []string{"a"},
-	Use:     "add [alias] [address]",
-	Short:   "Adds an address to the address book",
-	Long: `Adds an address to the address book. For example:
+	Use:     "add [name] [address]",
+	Short:   "Add an address to the address book",
+	Long: fmt.Sprintf(`Adds an entry to the address book
+
+The entry [name] may be an alias for external addresses, or match the keyring-backend name
+for user-owned accounts.
+
+For transactions to process, the [name] is used as the parameter by the %s daemon
+to check the keyring for available user-owned accounts to generate signature for signing.
+
+The entry [address] can be a normal address or a validator/valoper address.
+
+Examples:
 
 Adding a normal address:
-omg add nbuser onomy12345678901234567890123456789
+# omg addr add nbuser %s12345678901234567890123456789
 
-Adding a validator address:
-omg add validator onomyvaloper12345678901234567890123456789
+Adding a validator/valoper address:
+# omg addr add validator %s12345678901234567890123456789
 
-If no alias and address provided, the an input prompt will ask
-for the alias and address.
-`,
+An input prompt would ask for the [name] and [address] if these are not specified.
+`, cfg.Daemon, cfg.AddressPrefix, cfg.ValoperPrefix),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return addAction(os.Stdout, args)
 	},
@@ -38,16 +47,6 @@ for the alias and address.
 
 func init() {
 	addrCmd.AddCommand(addCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// addCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// addCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
 func addAction(out io.Writer, args []string) error {
@@ -69,6 +68,6 @@ func addAction(out io.Writer, args []string) error {
 	if err := l.Save(cfg.OmgFilename); err != nil {
 		return err
 	}
-	fmt.Printf("Added %q, %q to wallets\n", alias, address)
+	fmt.Fprintf(out, "Added ==> %s [%s]\n", alias, address)
 	return nil
 }

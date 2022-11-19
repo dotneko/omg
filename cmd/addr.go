@@ -13,12 +13,7 @@ var addrCmd = &cobra.Command{
 	Aliases: []string{"ad", "a"},
 	Use:     "addr [command]",
 	Short:   "Manage the address book",
-	Long: `Manage the address book
-	
-Add addresses with command: add [alias] [address]
-Delete addresses with command: rm [alias]
-Rename alias with command: rename [alias] [new alias]
-List alias and address with command: list`,
+	Long:    `Manage the address book`,
 }
 
 func init() {

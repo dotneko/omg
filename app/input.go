@@ -14,7 +14,7 @@ func GetAliasAddress(r io.Reader, args ...string) (string, string, error) {
 		return args[0], args[1], nil
 	}
 	s := bufio.NewScanner(r)
-	fmt.Print("Enter acc alias : ")
+	fmt.Print("Enter name/alias : ")
 	s.Scan()
 	if err := s.Err(); err != nil {
 		return "", "", err
@@ -23,7 +23,7 @@ func GetAliasAddress(r io.Reader, args ...string) (string, string, error) {
 		return "", "", fmt.Errorf("Alias cannot be blank")
 	}
 	alias = s.Text()
-	fmt.Print("Enter address  : ")
+	fmt.Print("Enter an address : ")
 	s.Scan()
 	if err := s.Err(); err != nil {
 		return "", "", err
@@ -49,7 +49,7 @@ func GetTxAccounts(r io.Reader, action string, args ...string) (string, string, 
 	s := bufio.NewScanner(r)
 	// Get input if no argument provided for 1st account
 	if acc1 == "" {
-		fmt.Printf("Enter wallet to %s from : ", action)
+		fmt.Printf("Enter account to %s from : ", action)
 		s.Scan()
 		if err := s.Err(); err != nil {
 			return "", "", err
@@ -63,7 +63,7 @@ func GetTxAccounts(r io.Reader, action string, args ...string) (string, string, 
 		if action == "delegate" {
 			fmt.Print("Enter validator to delegate to : ")
 		} else {
-			fmt.Printf("Enter wallet to %s to : ", action)
+			fmt.Printf("Enter account to %s to : ", action)
 		}
 		s.Scan()
 		if err := s.Err(); err != nil {
@@ -88,7 +88,7 @@ func GetAmount(r io.Reader, action string, address string, args ...string) (floa
 	if len(args) < 3 {
 		// Prompt for amount if no amount provided in args
 		s := bufio.NewScanner(r)
-		fmt.Printf("Enter amount to %s [%s] : ", action, cfg.Token)
+		fmt.Printf("Enter amount to %s : ", action)
 
 		s.Scan()
 		if err = s.Err(); err != nil {
