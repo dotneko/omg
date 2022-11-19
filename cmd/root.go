@@ -14,13 +14,11 @@ import (
 var (
 	version string = "0.3.0"
 	rootCmd        = &cobra.Command{
-		Use:     "omg",
-		Short:   "Convenience wrapper for the Onomy Protocol",
-		Long:    `omg - A CLI tool for interacting with the Onomy Protocol blockchain`,
-		Version: version,
-		// Uncomment the following line if your bare application
-		// has an action associated with it:
-		// Run: func(cmd *cobra.Command, args []string) { },
+		Use:          "omg",
+		Short:        "Convenience wrapper for the Onomy Protocol",
+		Long:         `omg - A CLI tool for interacting with the Onomy Protocol blockchain`,
+		Version:      version,
+		SilenceUsage: true,
 	}
 )
 
