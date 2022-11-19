@@ -132,7 +132,7 @@ func CheckBalances(address string) {
 	if err != nil {
 		fmt.Sprintln(err)
 	}
-	fmt.Printf("Avaliable balance : %s%s (%8.5f %s)\n", PrettifyDenom(balance), cfg.Denom, DenomToToken(balance), cfg.Token)
+	fmt.Printf("Avaliable balance : %s %s (%8.5f %s)\n", PrettifyDenom(balance), cfg.Denom, DenomToToken(balance), cfg.Token)
 }
 
 // Get keyring name and addresses
