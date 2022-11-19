@@ -21,7 +21,7 @@ var showCmd = &cobra.Command{
 	Short:   "Show one or all addresses",
 	Long:    `Show one or more addresses for a given name in the address book`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		filterNormal, err := cmd.Flags().GetBool("normal")
+		filterNormal, err := cmd.Flags().GetBool("regular")
 		if err != nil {
 			return err
 		}
@@ -46,15 +46,14 @@ var showCmd = &cobra.Command{
 func init() {
 	addrCmd.AddCommand(showCmd)
 
-	showCmd.Flags().BoolP("address", "a", false, "show addresses only")
-	showCmd.Flags().BoolP("normal", "n", false, "Select normal accounts")
+	showCmd.Flags().BoolP("address", "a", false, "Show addresses only")
+	showCmd.Flags().BoolP("regular", "r", false, "Select regular accounts")
 	showCmd.Flags().BoolP("validator", "v", false, "Select validator accounts")
 }
 
 func showAction(out io.Writer, filterAccount string, addressOnly bool, args []string) error {
 	l := &omg.Accounts{}
 
-	// Read from saved address book
 	if err := l.Load(cfg.OmgFilename); err != nil {
 		return err
 	}
