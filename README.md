@@ -1,21 +1,22 @@
 # `omg`
 
-**Onomy Manager** by nomblocks.io
+**Onomy Manager** by [nomblocks.io](https://nomblocks.io/)
 
-A command line tool for common user / validator interactions with the Onomy Protocol blockchain.
+A command line tool for common user/validator interactions with the [Onomy Protocol[(https://onomy.io/)] blockchain.
 
 `omg` functions as a wrapper for the `onomyd` command line tool to provide the following:
 
 * Simple address book to store onomy/validator addresses
 * Importing addresses stored in the onomy keyring
-* Conversion between the token `nom` <-> `anom` denom amounts
 * Query balances and rewards
-* Single command auto-restaking delegator rewards
+* Sending tokens
+* Delegating and withdrawing rewards
+* Automated restaking of delegator rewards
 
 ## Prerequisites
 
 * Go v1.18+
-* Locally running Onomy full node
+* Locally running Onomy full node (see [Onomy Docs](https://docs.onomy.io/run-a-full-node/starting-a-full-node))
 
 ## Installation
 
@@ -39,101 +40,145 @@ A full list of commands is shown by running `omg` without any flags
 
 ### Managing Addresses
 
-To create address book, you can import from the onomy keyring (default keyring is "test")
+The address book is managed using `omg addr` and its subcommands
 
 ```
-omg -import
+  add         Add an address to the address book
+  import      Import addresses from keyring
+  modify      Modify an address book entry
+  rm          Delete an address book entry
+  show        Show one or all addresses
 ```
 
-To specify keyring (e.g. pass), use the flag `-keyring [backend]`:
+To create an address book, you can import from the onomy keyring (default keyring is "test")
+
 ```
-omg -import -keyring pass
+omg addr import
 ```
 
-Addresses can be added using `-add [alias] [address]`:
+To specify keyring (e.g. pass), use the flag `--keyring [backend]`:
 ```
-omg -add some_alias onomy12345678901234567890123456789
+omg addr import --keyring pass
 ```
 
-Show list of addresses and their aliases:
+Addresses can be added using `add [alias] [address]`:
 ```
-omg -list
+omg addr add user1 onomy123456789012345678901234567890123456789
 ```
+
+Validator addresses can also be added using `add [alias] [valoper address]`:
+
+```
+omg addr add validator1 onomyvaloper123456789012345678901234567890123456789
+```
+
+Show list of addresses:
+```
+omg addr show
+```
+
+Get address for *user1*
+```
+omg addr show user1
+```
+
 ### Queries
 
-Check balance for *alias*
+Check balances for *user1*
 ```
-omg -balances alias
+omg balances user1
 ```
 
-Check rewards for *alias*
+Check rewards for *user1*
 ```
-omg -rewards alias
+omg rewards user1
+```
+
+The `--all` or `-a` flag can be used to query all accounts in the address book.
+
+```
+omg balances -a
+omg rewards --all
 ```
 
 ### Transactions
 
-By default, transactions will be generated and wait for user confirmation
+Transactions functions are listed under `tx` command:
 
-To bypass confirmation, can append the `-auto` flag after the other command.
+```
+  delegate    Delegate tokens from account to validator
+  restake     Restake rewards for account to validator
+  send        Send tokens from an account to another account/address
+  wdrewards   Withdraw all rewards
+```
+
+All transactions assume that the account `name` in the address book matches the name of the user's key in the keyring, and will fail if the onomyd cannot find the key in the keyring.
+
+By default, transactions will be generated and wait for user confirmation.
+
+The default keyring-backend is `test`, but can be modified using the flag `--keyring`. For example, to use the `pass` keyring-backend, specify `--keyring pass` when executing your command.
+
+To automate transactions, specify `--auto` or `-a`. When this flag is used, transaction prompts are automatically confirmed, therefore be sure that the transaction is what you want to execute. Note that this is only confirmed to work for the default keyring-backend `test`.
+
+> N.B. **omg is a wrapper for the onomyd daemon and *DOES NOT* have access to the user's private keys/mnemonic**
+
+#### Delegate
+
+To delegate 100,000,000,000anom from *user1* to *validator1*
+(If no amount specified, user will be prompted for the amount)
+
+```
+omg tx delegate user1 validator1 100000000000anom
+```
+
+To delegate the full avaiable balance leaving a remainder, use the `--full` or `-f` flag
+
+```
+omg tx delegate user1 validator1 --full
+```
+
+To adjust the remainder amount, user the `--remainder [amount]` or `-r [amount]` flag
+```
+omg tx delegate user1 validator1 --full -r 1000anom
+```
+
+#### Restake
+
+The `restake` subcommand will withdraw all rewards for the account then delegate the full amount *less remainder*
+to the specified validator.
+```
+omg tx restake user1 validator1
+```
+Auto restake (bypassing confirmations)
+```
+omg tx restake user1 validator1 --auto -r 1000000anom
+```
 
 #### Send
+
+Send tokens between accounts in the address book
+(If no amount specified, user will be prompted for the amount)
+
 ```
-omg -send from_alias to_alias
+omg tx send user1 user2 1000000anom
 ```
 
 #### Withdraw rewards
 
-Withdraw all rewards
+Automated withdraw all rewards for *user1*
 ```
-omg -wdall alias
-```
-
-Auto withdraw and bypass confirmation
-```
-omg -wdall alias -auto
-```
-#### Delegate
-
-Delegate amount to be input at prompt after executing
-```
-omg -delegate alias validator_alias
+omg tx wdrewards user1 --auto
 ```
 
-To specify delegate amount
-```
-omg -delegate alias validator_alias 1000000000000anom
-```
+## Conversion (Imprecise)
 
-To specify remainder amount, use a negative value
-```
-omg -delegate alias validator_alias -100000000anom
-```
-
-Values without the denom suffix is treated as the token amount, e.g.
-```
-omg -delegate alias validator_alias -1
-```
-would delegate available balance leaving a remainder of 1 nom (1000000000000000000anom)
-
-#### Restake
-
-The following will withdraw all rewards for the account, then delegate *entire balance less 1 nom*
-```
-omg -restake alias validator_alias
-```
-Auto restake (bypass confirmation)
-```
-omg -restake alias validator_alias -auto
-```
-
-## Conversion
+> **The current implementation only provides a rough conversion and is IMPRECISE**
 
 Convert token amount to denom amount
 ```
-omg -cvt 1  // Returns 1000000000000000000anom
+omg convert 1  // Returns 1000000000000000000anom
 ```
 Convert denom amount to token amount
 ```
-omg -cvd 1000000000000000000anom // Returns 1 nom
+omg convert 1000000000000000000anom // Returns 1 nom
 ```
