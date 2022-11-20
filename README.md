@@ -182,11 +182,11 @@ omg tx wdrewards user1 --auto
 
 ## Conversion
 
-Convert token amount to denom amount
+Convert token amount to base denom amount
 ```
-omg convert 1  // Returns 1000000000000000000anom
+omg convert 1nom // Returns 1000000000000000000anom
 ```
-Convert denom amount to token amount
+Convert base denom amount to token amount
 ```
-omg convert 1000000000000000000anom // Returns 1 nom
+omg convert 1000000000000000000anom // Returns 1nom
 ```
