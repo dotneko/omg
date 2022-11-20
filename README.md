@@ -2,7 +2,7 @@
 
 **Onomy Manager** by [nomblocks.io](https://nomblocks.io/)
 
-A command line tool for common user/validator interactions with the [Onomy Protocol[(https://onomy.io/)] blockchain.
+A command line tool for common user/validator interactions with the [Onomy Protocol](https://onomy.io/) blockchain.
 
 `omg` functions as a wrapper for the `onomyd` command line tool to provide the following:
 
