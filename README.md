@@ -109,7 +109,7 @@ Transactions functions are listed under `tx` command:
   delegate    Delegate tokens from account to validator
   restake     Restake rewards for account to validator
   send        Send tokens from an account to another account/address
-  wdrewards   Withdraw all rewards
+  wdrewards   Withdraw all rewards for account
 ```
 
 All transactions assume that the account `name` in the address book matches the name of the user's key in the keyring, and will fail if the onomyd cannot find the key in the keyring.
@@ -149,7 +149,12 @@ to the specified validator.
 ```
 omg tx restake user1 validator1
 ```
-Auto restake (bypassing confirmations)
+Auto restake (using default remainder amount)
+```
+omg tx restake user1 validator1 --auto
+```
+
+Auto restake (specify remainder amount)
 ```
 omg tx restake user1 validator1 --auto -r 1000000anom
 ```
@@ -161,6 +166,11 @@ Send tokens between accounts in the address book
 
 ```
 omg tx send user1 user2 1000000anom
+```
+
+Send tokens from account to external address
+```
+omg tx send user1 onomy1234567890123456789012345678901234567xx 1000000anom
 ```
 
 #### Withdraw rewards
