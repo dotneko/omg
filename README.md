@@ -180,9 +180,7 @@ Automated withdraw all rewards for *user1*
 omg tx wdrewards user1 --auto
 ```
 
-## Conversion (Imprecise)
-
-> **The current implementation only provides a rough conversion and is IMPRECISE**
+## Conversion
 
 Convert token amount to denom amount
 ```
