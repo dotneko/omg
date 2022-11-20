@@ -20,7 +20,7 @@ func GetAliasAddress(r io.Reader, args ...string) (string, string, error) {
 		return "", "", err
 	}
 	if len(s.Text()) == 0 {
-		return "", "", fmt.Errorf("Alias cannot be blank")
+		return "", "", fmt.Errorf("alias cannot be blank")
 	}
 	alias = s.Text()
 	fmt.Print("Enter an address : ")
@@ -29,7 +29,7 @@ func GetAliasAddress(r io.Reader, args ...string) (string, string, error) {
 		return "", "", err
 	}
 	if len(s.Text()) == 0 {
-		return "", "", fmt.Errorf("Address cannot be blank")
+		return "", "", fmt.Errorf("address cannot be blank")
 	}
 	address = s.Text()
 	return alias, address, nil
@@ -55,7 +55,7 @@ func GetTxAccounts(r io.Reader, action string, args ...string) (string, string, 
 			return "", "", err
 		}
 		if len(s.Text()) == 0 {
-			return "", "", fmt.Errorf("Alias cannot be blank\n")
+			return "", "", fmt.Errorf("alias cannot be blank")
 		}
 		acc1 = s.Text()
 	}
@@ -70,7 +70,7 @@ func GetTxAccounts(r io.Reader, action string, args ...string) (string, string, 
 			return "", "", err
 		}
 		if len(s.Text()) == 0 {
-			return "", "", fmt.Errorf("Alias cannot be blank\n")
+			return "", "", fmt.Errorf("alias cannot be blank")
 		}
 		acc2 = s.Text()
 	}
@@ -95,6 +95,9 @@ func GetAmount(r io.Reader, action string, address string, args ...string) (floa
 			return 0, err
 		}
 		amount, denom, err = StrSplitAmountDenom(s.Text())
+		if err != nil {
+			return 0, err
+		}
 	} else {
 		// Get amount from arguments
 		amount, denom, err = StrSplitAmountDenom(args[2])
@@ -103,7 +106,7 @@ func GetAmount(r io.Reader, action string, address string, args ...string) (floa
 		}
 	}
 	if amount == 0 {
-		return 0, fmt.Errorf("Amount cannot be 0")
+		return 0, fmt.Errorf("amount cannot be 0")
 	}
 	// Convert to denom amount if token given
 	if denom == cfg.Token {
@@ -111,7 +114,7 @@ func GetAmount(r io.Reader, action string, address string, args ...string) (floa
 	} else if denom == cfg.Denom {
 		denomAmount = amount
 	} else {
-		return 0, fmt.Errorf("Invalid denomination - must be: %s / %s)", cfg.Denom, cfg.Token)
+		return 0, fmt.Errorf("invalid denomination - must be: %s / %s)", cfg.Denom, cfg.Token)
 	}
 
 	// Check if sufficient balance
@@ -120,7 +123,7 @@ func GetAmount(r io.Reader, action string, address string, args ...string) (floa
 		return 0, err
 	}
 	if denomAmount > balance {
-		return 0, fmt.Errorf("Insufficient funds (requested %.0f%s)", denomAmount, cfg.Denom)
+		return 0, fmt.Errorf("insufficient funds (requested %.0f%s)", denomAmount, cfg.Denom)
 	}
 	return denomAmount, nil
 }

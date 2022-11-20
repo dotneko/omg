@@ -16,8 +16,9 @@ func init() {
 	}
 }
 func TestAddressTypes(t *testing.T) {
-	normalAddress := "onomy123456890111111111111111111111111111111"
-	validatorAddress := "onomyvaloper123456890111111111111111111111111111111"
+	normalAddress := "onomy123456789012345678901234567890123456789"
+	validatorAddress := "onomyvaloper123456789012345678901234567890123456789"
+
 	invalidPrefix := "cosmosnotavalidaddress0000000000000000000000"
 	invalidLength := "onomy1234568901111111111111111111111111111119"
 	type typeTest struct {

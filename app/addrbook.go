@@ -80,10 +80,10 @@ func (l *Accounts) ListFiltered(accountType string, addressOnly bool) string {
 // Add method creates a new account and appends it to the list of Accounts
 func (l *Accounts) Add(alias string, address string) error {
 	if !IsValidAddress(address) {
-		return fmt.Errorf("Error: %q is ot a valid address", address)
+		return fmt.Errorf("%q is ot a valid address", address)
 	}
 	if existAddr := l.GetAddress(alias); existAddr != "" {
-		return fmt.Errorf("Error: Existing entry for %s => %s", alias, existAddr)
+		return fmt.Errorf("existing entry for %s => %s", alias, existAddr)
 	}
 	a := Account{
 		Alias:   alias,
@@ -124,7 +124,7 @@ func (l *Accounts) Delete(alias string) error {
 func (l *Accounts) Modify(idx int, alias string, address string) error {
 	ls := *l
 	if idx < 0 || idx >= len(ls) {
-		return fmt.Errorf("Alias/address does not exist\n")
+		return fmt.Errorf("alias/address does not exist")
 	}
 	if alias != "" {
 		ls[idx].Alias = alias
