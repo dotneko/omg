@@ -49,7 +49,7 @@ func GetTxAccounts(r io.Reader, action string, args ...string) (string, string, 
 	s := bufio.NewScanner(r)
 	// Get input if no argument provided for 1st account
 	if acc1 == "" {
-		fmt.Printf("Enter account to %s from : ", action)
+		fmt.Printf("Enter account to %s from   : ", action)
 		s.Scan()
 		if err := s.Err(); err != nil {
 			return "", "", err

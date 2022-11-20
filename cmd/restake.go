@@ -17,8 +17,8 @@ import (
 
 // restakeCmd represents the restake command
 var restakeCmd = &cobra.Command{
-	Use:   "restake [alias] [validator alias]",
-	Short: "restake [alias] [validator alias]",
+	Use:   "restake [name] [validator alias]",
+	Short: "Restake rewards for account to validator",
 	Long:  `Withdraw all rewards for account, then re-delegate to validator.`,
 	Args:  cobra.RangeArgs(2, 3),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -41,7 +41,7 @@ var restakeCmd = &cobra.Command{
 func init() {
 	txCmd.AddCommand(restakeCmd)
 
-	restakeCmd.Flags().StringP("remainder", "r", "1nom", "Remainder after restake")
+	restakeCmd.Flags().StringP("remainder", "r", "100000000000000anom", "Remainder after restake")
 }
 
 func restakeAction(out io.Writer, remainder string, keyring string, auto bool, args []string) error {
@@ -83,34 +83,52 @@ func restakeAction(out io.Writer, remainder string, keyring string, auto bool, a
 	}
 
 	// Check balance for delegator
-	fmt.Fprintf(out, "Delegator %s [%s]\n", delegator, delegatorAddress)
 	balanceBefore, err := omg.GetBalanceAmount(delegatorAddress)
 	if err != nil {
-		return fmt.Errorf("Error getting balance for %s\n", delegator)
+		return fmt.Errorf("Error querying balance for %s\n", delegator)
 	}
-	fmt.Fprintf(out, "Existing balance: %.0f %s\n", balanceBefore, cfg.Denom)
-	fmt.Fprintf(out, "Withdrawing rewards for %s [%s]\n", delegator, delegatorAddress)
+	r, err := omg.GetRewards(delegatorAddress)
+	if err != nil {
+		return err
+	}
+	if r.Total[0].Denom != cfg.Denom {
+		return fmt.Errorf("Expected total denom to be %q, got %q\n", cfg.Denom, r.Total[0].Denom)
+	}
+	rewards, err := omg.StrToFloat(r.Total[0].Amount)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(out, "Delegator         : %s [%s]\n", delegator, delegatorAddress)
+	fmt.Fprintf(out, "Existing balance  : %s\n", omg.PrettifyDenom(balanceBefore))
+	fmt.Fprintf(out, "Unclaimed rewards : %s\n", omg.PrettifyDenom(rewards))
+	fmt.Fprintln(out, "----")
+	fmt.Fprintf(out, "Withdrawing rewards...\n")
 	omg.TxWithdrawRewards(out, delegator, keyring, auto)
 
 	// Wait till balance is updated
-	var balance *float64
-	balance = new(float64)
+	var balance float64
 	count := 0
 	for count <= 10 {
-		*balance, _ = omg.GetBalanceAmount(delegatorAddress)
-		if *balance > balanceBefore {
-			fmt.Fprintf(out, "Updated balance  : %.0f %s\n", *balance, cfg.Denom)
+		balance, _ = omg.GetBalanceAmount(delegatorAddress)
+		if balance > balanceBefore {
+			fmt.Fprintf(out, "...updated balance.\n")
 			break
 		}
 		count++
 		time.Sleep(1 * time.Second)
 	}
 	// If balance not updated and -auto flag set then abort
-	if auto && *balance == balanceBefore {
+	if auto && balance == balanceBefore {
 		return fmt.Errorf("Balance not increased. Aborting auto-restake")
 	}
 	// Restake amount leaving approx remainder of 1 token
-	amount := *balance - remainAmt
+	amount := balance - remainAmt
+	fmt.Fprintln(out, "----")
+	fmt.Fprintf(out, "Delegating to     : %s\n", valAddress)
+	fmt.Fprintf(out, "Available balance : %s\n", omg.PrettifyDenom(balance))
+	fmt.Fprintf(out, "Delegation amount : %s\n", omg.PrettifyDenom(amount))
+	fmt.Fprintf(out, "Remander amount   : %s\n", omg.PrettifyDenom(remainAmt))
+	fmt.Fprintln(out, "----")
 	omg.TxDelegateToValidator(delegator, valAddress, amount, keyring, auto)
 	return nil
 }

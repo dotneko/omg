@@ -1,6 +1,5 @@
 /*
-Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-
+Copyright © 2022 dotneko
 */
 package cmd
 
@@ -22,5 +21,4 @@ func init() {
 
 	txCmd.PersistentFlags().BoolP("auto", "a", false, "Auto confirm transaction")
 	txCmd.PersistentFlags().StringP("keyring", "k", cfg.KeyringBackend, "Specify keyring-backend to use.")
-
 }

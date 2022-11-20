@@ -64,7 +64,7 @@ func balancesAction(out io.Writer, allAccounts bool, args []string) error {
 		header = ""
 	} else {
 		address = l.GetAddress(args[0])
-		header = fmt.Sprintf("%10s [%s]:", args[0], address)
+		header = fmt.Sprintf("%10s [%s]: ", args[0], address)
 	}
 	if address == "" {
 		return fmt.Errorf("Account %q not found.\n", args[0])
