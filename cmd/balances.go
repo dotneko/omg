@@ -31,7 +31,7 @@ var balancesCmd = &cobra.Command{
 }
 
 func init() {
-	queryCmd.AddCommand(balancesCmd)
+	rootCmd.AddCommand(balancesCmd)
 
 	balancesCmd.Flags().BoolP("all", "a", false, "List balances for all accounts")
 }

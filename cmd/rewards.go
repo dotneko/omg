@@ -31,7 +31,7 @@ var rewardsCmd = &cobra.Command{
 }
 
 func init() {
-	queryCmd.AddCommand(rewardsCmd)
+	rootCmd.AddCommand(rewardsCmd)
 
 	rewardsCmd.Flags().BoolP("all", "a", false, "Check all accounts in address book")
 }
