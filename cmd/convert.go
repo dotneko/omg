@@ -11,6 +11,7 @@ import (
 
 	omg "github.com/dotneko/omg/app"
 	cfg "github.com/dotneko/omg/config"
+	"github.com/shopspring/decimal"
 
 	"github.com/spf13/cobra"
 )
@@ -45,37 +46,33 @@ func init() {
 
 func convertAction(out io.Writer, args []string) error {
 	var (
-		amount float64
+		amount decimal.Decimal
 		denom  string
 		err    error
 	)
 	if len(args) == 1 {
-		amount, denom, err = omg.StrSplitAmountDenom(args[0])
+		amount, denom, err = omg.StrSplitAmountDenomDec(args[0])
 		if err != nil {
 			return err
 		}
 	} else if len(args) == 2 {
-		amount, err = omg.StrToFloat(args[0])
+		amount, err = decimal.NewFromString(args[0])
 		if err != nil {
 			return err
 		}
 		denom = args[1]
 	}
-	fmt.Fprintf(out, "%.f %s => ", amount, denom)
 	var (
-		outFormat  string
-		convAmount float64
+		convAmount decimal.Decimal
 		convDenom  string
 	)
 	if denom == cfg.Denom {
-		convAmount = omg.DenomToToken(amount)
+		convAmount = omg.DenomToTokenDec(amount)
 		convDenom = cfg.Token
-		outFormat = "%.18f%s"
 	} else if denom == cfg.Token {
-		convAmount = omg.TokenToDenom(amount)
+		convAmount = omg.TokenToDenomDec(amount)
 		convDenom = cfg.Denom
-		outFormat = "%.0f%s"
 	}
-	fmt.Fprintf(out, outFormat, convAmount, convDenom)
+	fmt.Fprintf(out, "%s%s", convAmount.String(), convDenom)
 	return nil
 }

@@ -14,6 +14,7 @@ import (
 
 	cfg "github.com/dotneko/omg/config"
 	"github.com/dotneko/omg/types"
+	"github.com/shopspring/decimal"
 )
 
 // daemon flags
@@ -22,9 +23,37 @@ const (
 	keyringFlag string = "--keyring-backend"
 )
 
+// Convert denom to token (Decimal)
+func DenomToTokenDec(amt decimal.Decimal) decimal.Decimal {
+	d := amt.Shift(-cfg.Decimals)
+	return d
+}
+
+// Convert Token to denom (Decimal)
+func TokenToDenomDec(amt decimal.Decimal) decimal.Decimal {
+	d := amt.Shift(cfg.Decimals)
+	return d
+}
+
+// Split denominated amount to amount and denom (Decimal)
+func StrSplitAmountDenomDec(amtstr string) (decimal.Decimal, string, error) {
+	var NumericRegex = regexp.MustCompile(`[^0-9.-]+`)
+	var AlphaRegex = regexp.MustCompile(`[^a-zA-z]+`)
+	numstr := NumericRegex.ReplaceAllString(amtstr, "")
+	amt, err := decimal.NewFromString(numstr)
+	if err != nil {
+		return decimal.NewFromInt(0), "", err
+	}
+	denom := AlphaRegex.ReplaceAllString(amtstr, "")
+	if denom != cfg.Denom && denom != cfg.Token {
+		return amt, "", nil
+	}
+	return amt, denom, nil
+}
+
 // Convert denom to token amount
 func DenomToToken(amt float64) float64 {
-	return amt / math.Pow10(cfg.Decimals)
+	return amt / math.Pow10(int(cfg.Decimals))
 }
 
 // Convert denom to annotated string
@@ -34,7 +63,7 @@ func DenomToStr(amt float64) string {
 
 // Convert token amount to denom amount
 func TokenToDenom(amt float64) float64 {
-	return amt * math.Pow10(cfg.Decimals)
+	return amt * math.Pow10(int(cfg.Decimals))
 }
 
 // Strip non-numeric characters and convert to float
@@ -102,7 +131,7 @@ func GetBalancesQuery(address string) (*types.BalancesQuery, error) {
 		return nil, err
 	}
 	if !json.Valid(out) {
-		return nil, errors.New("Invalid json")
+		return nil, errors.New("invalid json")
 	}
 	var b types.BalancesQuery
 	if err = json.Unmarshal(out, &b); err != nil {
@@ -144,14 +173,14 @@ func GetKeyringAccounts(keyring string) (Accounts, error) {
 		return nil, err
 	}
 	if !json.Valid(out) {
-		return nil, errors.New("Invalid json")
+		return nil, errors.New("invalid json")
 	}
 	var k []types.KeyStruct
 	if err = json.Unmarshal(out, &k); err != nil {
 		return nil, err
 	}
 	if len(k) == 0 {
-		return nil, errors.New("No addresses in keyring")
+		return nil, errors.New("no addresses in keyring")
 	}
 	var accounts []Account = nil
 	for _, key := range k {
@@ -173,7 +202,7 @@ func GetRewards(address string) (*types.RewardsQuery, error) {
 		return nil, err
 	}
 	if !json.Valid(out) {
-		return nil, fmt.Errorf("Invalid json")
+		return nil, fmt.Errorf("invalid json")
 	}
 	var r types.RewardsQuery
 	if err = json.Unmarshal(out, &r); err != nil {

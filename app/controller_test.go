@@ -6,6 +6,7 @@ import (
 
 	omg "github.com/dotneko/omg/app"
 	cfg "github.com/dotneko/omg/config"
+	"github.com/shopspring/decimal"
 )
 
 func TestConversion(t *testing.T) {
@@ -30,6 +31,36 @@ func TestConversion(t *testing.T) {
 		}
 		if convAmt != test.convertedAmt {
 			t.Errorf("Expected %f, instead got %f", test.convertedAmt, convAmt)
+		}
+	}
+}
+
+func TestConversionDec(t *testing.T) {
+
+	type conversionTest struct {
+		inputAmt     decimal.Decimal
+		inputDenom   string
+		convertedAmt decimal.Decimal
+	}
+	d10 := decimal.NewFromFloat(10)
+	d10e18 := decimal.NewFromFloat(10000000000000000000)
+
+	var conversionTests = []conversionTest{
+		{d10, cfg.Token, d10e18},
+		{d10e18, cfg.Denom, d10},
+		{decimal.NewFromFloat(0.00000000012345), cfg.Token, decimal.NewFromFloat(123450000)},
+		{decimal.NewFromFloat(123450000), cfg.Denom, decimal.NewFromFloat(0.00000000012345)},
+	}
+	for _, test := range conversionTests {
+
+		var convAmt decimal.Decimal
+		if test.inputDenom == cfg.Denom {
+			convAmt = omg.DenomToTokenDec(test.inputAmt)
+		} else if test.inputDenom == cfg.Token {
+			convAmt = omg.TokenToDenomDec(test.inputAmt)
+		}
+		if !convAmt.Equal(test.convertedAmt) {
+			t.Errorf("Expected %s, instead got %s", test.convertedAmt.String(), convAmt.String())
 		}
 	}
 }
