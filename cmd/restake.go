@@ -126,9 +126,9 @@ func restakeAction(out io.Writer, remainder string, keyring string, auto bool, a
 	amount := balance.Sub(remainAmt)
 	fmt.Fprintln(out, "----")
 	fmt.Fprintf(out, "Delegating to     : %s\n", valAddress)
-	fmt.Fprintf(out, "Available balance : %s\n", omg.PrettifyDenom(balance))
-	fmt.Fprintf(out, "Delegation amount : %s\n", omg.PrettifyDenom(amount))
-	fmt.Fprintf(out, "Remander amount   : %s\n", omg.PrettifyDenom(remainAmt))
+	fmt.Fprintf(out, "Available balance : %s%s\n", omg.PrettifyDenom(balance), cfg.Denom)
+	fmt.Fprintf(out, "Delegation amount : %s%s\n", omg.PrettifyDenom(amount), cfg.Denom)
+	fmt.Fprintf(out, "Remander amount   : %s%s\n", omg.PrettifyDenom(remainAmt), cfg.Denom)
 	fmt.Fprintln(out, "----")
 	omg.TxDelegateToValidator(delegator, valAddress, amount, keyring, auto)
 	return nil

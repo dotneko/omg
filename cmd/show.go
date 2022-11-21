@@ -44,7 +44,7 @@ var showCmd = &cobra.Command{
 }
 
 func init() {
-	addrCmd.AddCommand(showCmd)
+	addressCmd.AddCommand(showCmd)
 
 	showCmd.Flags().BoolP("address", "a", false, "Show addresses only")
 	showCmd.Flags().BoolP("regular", "r", false, "Select regular accounts")

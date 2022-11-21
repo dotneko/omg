@@ -46,7 +46,7 @@ An input prompt would ask for the [name] and [address] if these are not specifie
 }
 
 func init() {
-	addrCmd.AddCommand(addCmd)
+	addressCmd.AddCommand(addCmd)
 }
 
 func addAction(out io.Writer, args []string) error {

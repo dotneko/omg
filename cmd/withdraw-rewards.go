@@ -16,8 +16,8 @@ import (
 
 // wdrewardsCmd represents the wdrewards command
 var wdrewardsCmd = &cobra.Command{
-	Aliases: []string{"wdall", "wd", "w"},
-	Use:     "wdrewards [name]",
+	Aliases: []string{"wd", "wr"},
+	Use:     "withdraw-rewards [name]",
 	Short:   "Withdraw all rewards for account",
 	Long:    `Withdraw all rewards for account`,
 	Args:    cobra.ExactArgs(1),

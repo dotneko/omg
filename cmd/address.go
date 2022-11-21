@@ -9,13 +9,13 @@ import (
 )
 
 // addrCmd represents the addr command
-var addrCmd = &cobra.Command{
-	Aliases: []string{"ad", "a"},
-	Use:     "addr [command]",
+var addressCmd = &cobra.Command{
+	Aliases: []string{"addr", "ad", "a"},
+	Use:     "address [command]",
 	Short:   "Manage the address book",
 	Long:    `Manage the address book`,
 }
 
 func init() {
-	rootCmd.AddCommand(addrCmd)
+	rootCmd.AddCommand(addressCmd)
 }

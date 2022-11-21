@@ -29,7 +29,7 @@ var importCmd = &cobra.Command{
 }
 
 func init() {
-	addrCmd.AddCommand(importCmd)
+	addressCmd.AddCommand(importCmd)
 
 	importCmd.Flags().StringP("keyring", "k", cfg.KeyringBackend, "Specify keyring-backend")
 }

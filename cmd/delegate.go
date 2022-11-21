@@ -18,7 +18,7 @@ import (
 
 // delegateCmd represents the delegate command
 var delegateCmd = &cobra.Command{
-	Aliases: []string{"del"},
+	Aliases: []string{"del", "d"},
 	Use:     "delegate [account] [validator] [amount][denom]",
 	Short:   "Delegate tokens from account to validator",
 	Long:    `Delegate tokens from account to validator.`,
@@ -110,7 +110,7 @@ func delegateAction(out io.Writer, keyring string, auto bool, all bool, remainde
 	}
 	fmt.Fprintf(out, "Available balance : %s%s\n", omg.PrettifyDenom(balance), denom)
 	fmt.Fprintf(out, "Delegation amount : %s%s\n", omg.PrettifyDenom(amount), denom)
-	fmt.Fprintf(out, "Remander amount   : %s%s\n", omg.PrettifyDenom(remainAmt), denom)
+	fmt.Fprintf(out, "Remainder amount  : %s%s\n", omg.PrettifyDenom(remainAmt), denom)
 	fmt.Fprintln(out, "----")
 	omg.TxDelegateToValidator(delegator, valAddress, amount, keyring, auto)
 

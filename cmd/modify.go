@@ -40,7 +40,7 @@ Examples:
 }
 
 func init() {
-	addrCmd.AddCommand(modifyCmd)
+	addressCmd.AddCommand(modifyCmd)
 
 	modifyCmd.Flags().StringP("address", "a", "", "New address to use")
 }
