@@ -12,6 +12,7 @@ import (
 
 	omg "github.com/dotneko/omg/app"
 	cfg "github.com/dotneko/omg/config"
+	"github.com/shopspring/decimal"
 	"github.com/spf13/cobra"
 )
 
@@ -47,20 +48,20 @@ func init() {
 func restakeAction(out io.Writer, remainder string, keyring string, auto bool, args []string) error {
 	// Ensure all arguments provided
 	if len(args) != 2 {
-		return fmt.Errorf("Expecting [delegator] [validator]")
+		return fmt.Errorf("expecting [delegator] [validator]")
 	}
 	delegator := args[0]
 	validator := args[1]
 
-	remainAmt, denom, err := omg.StrSplitAmountDenom(remainder)
+	remainAmt, denom, err := omg.StrSplitAmountDenomDec(remainder)
 	if err != nil {
 		return err
 	}
 	if denom == cfg.Token {
-		remainAmt = omg.TokenToDenom(remainAmt)
+		remainAmt = omg.TokenToDenomDec(remainAmt)
 		denom = cfg.Denom
 	} else if denom != cfg.Denom {
-		return fmt.Errorf("Denomination not specified")
+		return fmt.Errorf("denomination not specified")
 	}
 	l := &omg.Accounts{}
 	if err := l.Load(cfg.OmgFilename); err != nil {
@@ -69,7 +70,7 @@ func restakeAction(out io.Writer, remainder string, keyring string, auto bool, a
 	delegatorAddress := l.GetAddress(delegator)
 
 	if !omg.IsNormalAddress(delegatorAddress) {
-		return fmt.Errorf("Invalid delegator account: %s\n", delegatorAddress)
+		return fmt.Errorf("invalid delegator account: %s", delegatorAddress)
 	}
 	var valAddress string
 	if omg.IsValidatorAddress(validator) {
@@ -78,39 +79,39 @@ func restakeAction(out io.Writer, remainder string, keyring string, auto bool, a
 		valAddress = l.GetAddress(validator)
 
 		if !omg.IsValidatorAddress(valAddress) {
-			return fmt.Errorf("Invalid validator: %q \n", valAddress)
+			return fmt.Errorf("invalid validator: %q", valAddress)
 		}
 	}
 
 	// Check balance for delegator
-	balanceBefore, err := omg.GetBalanceAmount(delegatorAddress)
+	balanceBefore, err := omg.GetBalanceDec(delegatorAddress)
 	if err != nil {
-		return fmt.Errorf("Error querying balance for %s\n", delegator)
+		return fmt.Errorf("error querying balance for %s", delegator)
 	}
 	r, err := omg.GetRewards(delegatorAddress)
 	if err != nil {
 		return err
 	}
 	if r.Total[0].Denom != cfg.Denom {
-		return fmt.Errorf("Expected total denom to be %q, got %q\n", cfg.Denom, r.Total[0].Denom)
+		return fmt.Errorf("expected total denom to be %q, got %q", cfg.Denom, r.Total[0].Denom)
 	}
-	rewards, err := omg.StrToFloat(r.Total[0].Amount)
+	rewards, err := omg.StrToDec(r.Total[0].Amount)
 	if err != nil {
 		return err
 	}
 	fmt.Fprintf(out, "Delegator         : %s [%s]\n", delegator, delegatorAddress)
-	fmt.Fprintf(out, "Existing balance  : %s\n", omg.PrettifyDenom(balanceBefore))
-	fmt.Fprintf(out, "Unclaimed rewards : %s\n", omg.PrettifyDenom(rewards))
+	fmt.Fprintf(out, "Existing balance  : %s%s\n", omg.PrettifyDenom(balanceBefore), denom)
+	fmt.Fprintf(out, "Unclaimed rewards : %s%s\n", omg.PrettifyDenom(rewards), denom)
 	fmt.Fprintln(out, "----")
 	fmt.Fprintf(out, "Withdrawing rewards...\n")
 	omg.TxWithdrawRewards(out, delegator, keyring, auto)
 
 	// Wait till balance is updated
-	var balance float64
+	var balance decimal.Decimal
 	count := 0
 	for count <= 10 {
-		balance, _ = omg.GetBalanceAmount(delegatorAddress)
-		if balance > balanceBefore {
+		balance, _ = omg.GetBalanceDec(delegatorAddress)
+		if balance.GreaterThan(balanceBefore) {
 			fmt.Fprintf(out, "...updated balance.\n")
 			break
 		}
@@ -119,10 +120,10 @@ func restakeAction(out io.Writer, remainder string, keyring string, auto bool, a
 	}
 	// If balance not updated and -auto flag set then abort
 	if auto && balance == balanceBefore {
-		return fmt.Errorf("Balance not increased. Aborting auto-restake")
+		return fmt.Errorf("balance not increased. Aborting auto-restake")
 	}
 	// Restake amount leaving approx remainder of 1 token
-	amount := balance - remainAmt
+	amount := balance.Sub(remainAmt)
 	fmt.Fprintln(out, "----")
 	fmt.Fprintf(out, "Delegating to     : %s\n", valAddress)
 	fmt.Fprintf(out, "Available balance : %s\n", omg.PrettifyDenom(balance))

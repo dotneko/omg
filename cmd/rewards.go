@@ -52,11 +52,11 @@ func rewardsAction(out io.Writer, allAccounts bool, args []string) error {
 				}
 				fmt.Printf("Rewards for %10s [%s]:\n", acc.Alias, acc.Address)
 				for _, v := range r.Rewards {
-					amt, err := omg.StrToFloat(v.Reward[0].Amount)
+					amt, err := omg.StrToDec(v.Reward[0].Amount)
 					if err != nil {
 						return err
 					}
-					fmt.Fprintf(out, " - %s - %8.5f %s\n", v.ValidatorAddress, omg.DenomToToken(amt), cfg.Token)
+					fmt.Fprintf(out, " - %s - %s %s\n", v.ValidatorAddress, omg.DenomToTokenDec(amt).String(), cfg.Token)
 				}
 				fmt.Fprintln(out)
 			}
@@ -64,7 +64,7 @@ func rewardsAction(out io.Writer, allAccounts bool, args []string) error {
 		return nil
 	}
 	if len(args) == 0 {
-		return fmt.Errorf("No account/address provided.\n")
+		return fmt.Errorf("no account/address provided")
 	}
 	var address string
 	if omg.IsNormalAddress(args[0]) {
@@ -72,7 +72,7 @@ func rewardsAction(out io.Writer, allAccounts bool, args []string) error {
 	} else {
 		address = l.GetAddress(args[0])
 		if address == "" {
-			return fmt.Errorf("Account %q not found.\n", args[0])
+			return fmt.Errorf("account %q not found", args[0])
 		}
 	}
 	r, err := omg.GetRewards(address)
@@ -80,11 +80,11 @@ func rewardsAction(out io.Writer, allAccounts bool, args []string) error {
 		return err
 	}
 	for _, v := range r.Rewards {
-		amt, err := omg.StrToFloat(v.Reward[0].Amount)
+		amt, err := omg.StrToDec(v.Reward[0].Amount)
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(out, "%s - %8.5f %s\n", v.ValidatorAddress, omg.DenomToToken(amt), cfg.Token)
+		fmt.Fprintf(out, "%s - %s %s\n", v.ValidatorAddress, omg.DenomToTokenDec(amt).String(), cfg.Token)
 	}
 	return nil
 }

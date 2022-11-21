@@ -33,7 +33,7 @@ var balancesCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(balancesCmd)
 
-	balancesCmd.Flags().BoolP("all", "a", false, "List balances for all accounts")
+	balancesCmd.Flags().BoolP("all", "a", false, "Check all accounts in address book")
 }
 
 func balancesAction(out io.Writer, allAccounts bool, args []string) error {
@@ -45,17 +45,17 @@ func balancesAction(out io.Writer, allAccounts bool, args []string) error {
 	if allAccounts {
 		for _, acc := range *l {
 			if omg.IsNormalAddress(acc.Address) {
-				balance, err := omg.GetBalanceAmount(acc.Address)
+				balance, err := omg.GetBalanceDec(acc.Address)
 				if err != nil {
 					return err
 				}
-				fmt.Fprintf(out, "%10s [%s]: %.0f%s (~%.10f %s)\n", acc.Alias, acc.Address, balance, cfg.Denom, omg.DenomToToken(balance), cfg.Token)
+				fmt.Fprintf(out, "%10s [%s]: %s %s (%s %s)\n", acc.Alias, acc.Address, balance.String(), cfg.Denom, omg.DenomToTokenDec(balance).String(), cfg.Token)
 			}
 		}
 		return nil
 	}
 	if len(args) == 0 {
-		return fmt.Errorf("No account provided.\n")
+		return fmt.Errorf("no account provided")
 	}
 	var address string
 	var header string
@@ -67,12 +67,12 @@ func balancesAction(out io.Writer, allAccounts bool, args []string) error {
 		header = fmt.Sprintf("%10s [%s]: ", args[0], address)
 	}
 	if address == "" {
-		return fmt.Errorf("Account %q not found.\n", args[0])
+		return fmt.Errorf("account %q not found", args[0])
 	}
-	balance, err := omg.GetBalanceAmount(address)
+	balance, err := omg.GetBalanceDec(address)
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(out, header+"%.0f%s (~%.10f %s)\n", balance, cfg.Denom, omg.DenomToToken(balance), cfg.Token)
+	fmt.Fprintf(out, header+"%s %s (%s %s)\n", balance.String(), cfg.Denom, omg.DenomToTokenDec(balance).String(), cfg.Token)
 	return nil
 }

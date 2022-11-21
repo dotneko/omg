@@ -6,6 +6,7 @@ import (
 	"io"
 
 	cfg "github.com/dotneko/omg/config"
+	"github.com/shopspring/decimal"
 )
 
 func GetAliasAddress(r io.Reader, args ...string) (string, string, error) {
@@ -78,11 +79,11 @@ func GetTxAccounts(r io.Reader, action string, args ...string) (string, string, 
 }
 
 // Get amount from stdin
-func GetAmount(r io.Reader, action string, address string, args ...string) (float64, error) {
+func GetAmount(r io.Reader, action string, address string, args ...string) (decimal.Decimal, error) {
 	var (
-		amount      float64
+		amount      decimal.Decimal
 		denom       string
-		denomAmount float64
+		denomAmount decimal.Decimal
 		err         error
 	)
 	if len(args) < 3 {
@@ -92,38 +93,38 @@ func GetAmount(r io.Reader, action string, address string, args ...string) (floa
 
 		s.Scan()
 		if err = s.Err(); err != nil {
-			return 0, err
+			return decimal.NewFromInt(0), err
 		}
-		amount, denom, err = StrSplitAmountDenom(s.Text())
+		amount, denom, err = StrSplitAmountDenomDec(s.Text())
 		if err != nil {
-			return 0, err
+			return decimal.NewFromInt(0), err
 		}
 	} else {
 		// Get amount from arguments
-		amount, denom, err = StrSplitAmountDenom(args[2])
+		amount, denom, err = StrSplitAmountDenomDec(args[2])
 		if err != nil {
-			return 0, err
+			return decimal.NewFromInt(0), err
 		}
 	}
-	if amount == 0 {
-		return 0, fmt.Errorf("amount cannot be 0")
+	if amount.Equal(decimal.NewFromInt(0)) {
+		return decimal.NewFromInt(0), fmt.Errorf("amount cannot be 0")
 	}
 	// Convert to denom amount if token given
 	if denom == cfg.Token {
-		denomAmount = TokenToDenom(amount)
+		denomAmount = TokenToDenomDec(amount)
 	} else if denom == cfg.Denom {
 		denomAmount = amount
 	} else {
-		return 0, fmt.Errorf("invalid denomination - must be: %s / %s)", cfg.Denom, cfg.Token)
+		return decimal.NewFromInt(0), fmt.Errorf("invalid denomination - must be: %s / %s)", cfg.Denom, cfg.Token)
 	}
 
 	// Check if sufficient balance
-	balance, err := GetBalanceAmount(address)
+	balance, err := GetBalanceDec(address)
 	if err != nil {
-		return 0, err
+		return decimal.NewFromInt(0), err
 	}
-	if denomAmount > balance {
-		return 0, fmt.Errorf("insufficient funds (requested %.0f%s)", denomAmount, cfg.Denom)
+	if denomAmount.GreaterThan(balance) {
+		return decimal.NewFromInt(0), fmt.Errorf("insufficient funds (requested %s%s)", denomAmount, cfg.Denom)
 	}
 	return denomAmount, nil
 }

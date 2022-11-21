@@ -11,6 +11,7 @@ import (
 
 	omg "github.com/dotneko/omg/app"
 	cfg "github.com/dotneko/omg/config"
+	"github.com/shopspring/decimal"
 
 	"github.com/spf13/cobra"
 )
@@ -65,50 +66,51 @@ func delegateAction(out io.Writer, keyring string, auto bool, all bool, remainde
 	delegatorAddress := l.GetAddress(delegator)
 
 	if !omg.IsNormalAddress(delegatorAddress) {
-		return fmt.Errorf("Invalid delegator address: %s\n", delegatorAddress)
+		return fmt.Errorf("invalid delegator address: %s", delegatorAddress)
 	}
 	// Check if valid validator address
 	valAddress := l.GetAddress(validator)
 
 	if !omg.IsValidatorAddress(valAddress) {
-		return fmt.Errorf("Invalid validator address %s\n", valAddress)
+		return fmt.Errorf("invalid validator address %s", valAddress)
 	}
 	fmt.Fprintf(out, "Delegator         : %s [%s]\n", delegator, delegatorAddress)
-	balance, err := omg.GetBalanceAmount(delegatorAddress)
+	balance, err := omg.GetBalanceDec(delegatorAddress)
 	if err != nil {
 		return err
 	}
 	var (
-		amount    float64
-		remainAmt float64
+		amount    decimal.Decimal
+		remainAmt decimal.Decimal
 		denom     string
 	)
 	if all {
 		// Parse remainder
-		remainAmt, denom, err = omg.StrSplitAmountDenom(remainder)
+		remainAmt, denom, err = omg.StrSplitAmountDenomDec(remainder)
 		if err != nil {
 			return err
 		}
 		if denom == cfg.Token {
-			amount = omg.TokenToDenom(remainAmt)
+			amount = omg.TokenToDenomDec(remainAmt)
 			denom = cfg.Denom
 		} else if denom != cfg.Denom {
-			return fmt.Errorf("Denomination not specified")
+			return fmt.Errorf("denomination not specified")
+		} else {
+			amount = balance.Sub(remainAmt)
 		}
-		amount = balance - remainAmt
-		if amount <= 0 {
-			return fmt.Errorf("Insufficient balance after deducting remainder: %.0f", amount)
+		if amount.LessThanOrEqual(decimal.NewFromInt(0)) {
+			return fmt.Errorf("insufficient balance after deducting remainder: %s %s", amount.String(), denom)
 		}
 	} else {
 		amount, err = omg.GetAmount(os.Stdin, "delegate", delegatorAddress, args...)
 		if err != nil {
 			return err
 		}
-		remainAmt = balance - amount
+		remainAmt = balance.Sub(amount)
 	}
-	fmt.Fprintf(out, "Available balance : %s\n", omg.PrettifyDenom(balance))
-	fmt.Fprintf(out, "Delegation amount : %s\n", omg.PrettifyDenom(amount))
-	fmt.Fprintf(out, "Remander amount   : %s\n", omg.PrettifyDenom(remainAmt))
+	fmt.Fprintf(out, "Available balance : %s%s\n", omg.PrettifyDenom(balance), denom)
+	fmt.Fprintf(out, "Delegation amount : %s%s\n", omg.PrettifyDenom(amount), denom)
+	fmt.Fprintf(out, "Remander amount   : %s%s\n", omg.PrettifyDenom(remainAmt), denom)
 	fmt.Fprintln(out, "----")
 	omg.TxDelegateToValidator(delegator, valAddress, amount, keyring, auto)
 

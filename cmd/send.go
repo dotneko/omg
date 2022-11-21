@@ -69,20 +69,20 @@ func sendAction(out io.Writer, auto bool, keyring string, args []string) error {
 	}
 	fromAddress = l.GetAddress(from)
 	if fromAddress == "" {
-		return fmt.Errorf("No account found")
+		return fmt.Errorf("no account found")
 	}
 	if !omg.IsNormalAddress(fromAddress) {
-		return fmt.Errorf("Invalid from account: %s\n", fromAddress)
+		return fmt.Errorf("invalid from account: %s", fromAddress)
 	}
 	// Check if valid validator address
 	if !omg.IsNormalAddress(to) {
 		toAddress = l.GetAddress(to)
 		if toAddress == "" {
-			return fmt.Errorf("Address not in list\n")
+			return fmt.Errorf("address not in list")
 		}
 	}
 	if !omg.IsNormalAddress(toAddress) {
-		return fmt.Errorf("Invalid address: %s\n", toAddress)
+		return fmt.Errorf("invalid address: %s", toAddress)
 	}
 	amount, err := omg.GetAmount(os.Stdin, "send", fromAddress, args...)
 	if err != nil {

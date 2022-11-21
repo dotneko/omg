@@ -47,7 +47,7 @@ func wdrewardsAction(out io.Writer, keyring string, auto bool, args []string) er
 	}
 	address := l.GetAddress(args[0])
 	if address == "" {
-		return fmt.Errorf("Account %q not found.\n", args[0])
+		return fmt.Errorf("account %q not found", args[0])
 	}
 	if !omg.IsNormalAddress(address) {
 		return fmt.Errorf("%s is not a normal account", args[0])

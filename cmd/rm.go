@@ -47,7 +47,7 @@ func rmAction(out io.Writer, args []string) error {
 		}
 	}
 	if !deleted {
-		return fmt.Errorf("%q not found.", args[0])
+		return fmt.Errorf("%q not found", args[0])
 	}
 	return nil
 }

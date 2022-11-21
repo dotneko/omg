@@ -19,7 +19,7 @@ import (
 // convertCmd represents the convert command
 var (
 	convertCmd = &cobra.Command{
-		Aliases: []string{"cv"},
+		Aliases: []string{"cv", "c"},
 		Use:     "convert [amount][denom]",
 		Short:   fmt.Sprintf("Conversion between %s and %s", cfg.Denom, cfg.Token),
 		Long:    `Conversion tool between token and denom amounts`,

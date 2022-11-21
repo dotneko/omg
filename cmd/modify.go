@@ -33,7 +33,7 @@ Examples:
 			return err
 		}
 		if len(args) == 1 && address == "" {
-			return fmt.Errorf("Missing new name or address flag")
+			return fmt.Errorf("missing new name or address flag")
 		}
 		return modifyAction(os.Stdout, address, args)
 	},
@@ -62,11 +62,11 @@ func modifyAction(out io.Writer, address string, args []string) error {
 		return err
 	}
 	if len(*l) == 0 {
-		return fmt.Errorf("No accounts in store")
+		return fmt.Errorf("no accounts in store")
 	}
 
 	if len(newAlias) < cfg.MinAliasLength {
-		return fmt.Errorf("Please use alias of at least 3 characters")
+		return fmt.Errorf("please use alias of at least 3 characters")
 	}
 	idx := l.GetIndex(oldAlias)
 	err := l.Modify(idx, newAlias, address)

@@ -5,11 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
 	"os"
 	"os/exec"
 	"regexp"
-	"strconv"
 	"strings"
 
 	cfg "github.com/dotneko/omg/config"
@@ -51,52 +49,26 @@ func StrSplitAmountDenomDec(amtstr string) (decimal.Decimal, string, error) {
 	return amt, denom, nil
 }
 
-// Convert denom to token amount
-func DenomToToken(amt float64) float64 {
-	return amt / math.Pow10(int(cfg.Decimals))
-}
-
 // Convert denom to annotated string
-func DenomToStr(amt float64) string {
-	return fmt.Sprintf("%.0f%s", amt, cfg.Denom)
+func DenomToStr(amt decimal.Decimal) string {
+	return fmt.Sprintf("%s%s", amt.String(), cfg.Denom)
 }
 
-// Convert token amount to denom amount
-func TokenToDenom(amt float64) float64 {
-	return amt * math.Pow10(int(cfg.Decimals))
-}
-
-// Strip non-numeric characters and convert to float
-func StrToFloat(amtstr string) (float64, error) {
+// Strip non-numeric characters and convert to decimal
+func StrToDec(amtstr string) (decimal.Decimal, error) {
 	var NumericRegex = regexp.MustCompile(`[^0-9.]+`)
 	numstr := NumericRegex.ReplaceAllString(amtstr, "")
-	amt, err := strconv.ParseFloat(numstr, 64)
+	amt, err := decimal.NewFromString(numstr)
 	if err != nil {
-		return 0, err
+		return decimal.NewFromInt(0), err
 	}
 	return amt, nil
 }
 
-// Split denominated amount to amount and denom
-func StrSplitAmountDenom(amtstr string) (float64, string, error) {
-	var NumericRegex = regexp.MustCompile(`[^0-9.-]+`)
-	var AlphaRegex = regexp.MustCompile(`[^a-zA-z]+`)
-	numstr := NumericRegex.ReplaceAllString(amtstr, "")
-	amt, err := strconv.ParseFloat(numstr, 64)
-	if err != nil {
-		return 0, "", err
-	}
-	denom := AlphaRegex.ReplaceAllString(amtstr, "")
-	if denom != cfg.Denom && denom != cfg.Token {
-		return amt, "", nil
-	}
-	return amt, denom, nil
-}
-
 // Insert separator for non-decimal numbers as output
-func PrettifyDenom(amt float64) string {
-	amtStr := strconv.FormatFloat(amt, 'f', 0, 64)
-	if amt < 1000 {
+func PrettifyDenom(amt decimal.Decimal) string {
+	amtStr := amt.String()
+	if amt.LessThan(decimal.NewFromInt(1000)) {
 		return amtStr
 	}
 	separator := ","
@@ -113,12 +85,12 @@ func PrettifyDenom(amt float64) string {
 	return outStr
 }
 
-func PrettifyAmount(amount float64, denom string) string {
+func PrettifyAmount(amount decimal.Decimal, denom string) string {
 	if denom == cfg.Denom {
 		return fmt.Sprintf("%s %s", PrettifyDenom(amount), denom)
 	}
 	if denom == cfg.Token {
-		return fmt.Sprintf("%.18f %s", amount, denom)
+		return fmt.Sprintf("%s %s", amount.String(), denom)
 	}
 	return ""
 }
@@ -141,27 +113,27 @@ func GetBalancesQuery(address string) (*types.BalancesQuery, error) {
 	return &b, nil
 }
 
-// Get Balances (first denom) to float amount
-func GetBalanceAmount(address string) (float64, error) {
+// Get Balances (first denom) to decimal amount
+func GetBalanceDec(address string) (decimal.Decimal, error) {
 
 	bQ, err := GetBalancesQuery(address)
 	if err != nil {
-		return -1, err
+		return decimal.NewFromInt(-1), err
 	}
-	amt, err := strconv.ParseFloat(bQ.Balances[0].Amount, 64)
+	amt, err := decimal.NewFromString(bQ.Balances[0].Amount)
 	if err != nil {
-		return -1, err
+		return decimal.NewFromInt(-1), err
 	}
 	return amt, nil
 }
 
 // Check balance method
 func CheckBalances(address string) {
-	balance, err := GetBalanceAmount(address)
+	balance, err := GetBalanceDec(address)
 	if err != nil {
 		fmt.Sprintln(err)
 	}
-	fmt.Printf("Avaliable balance : %s %s (%8.5f %s)\n", PrettifyDenom(balance), cfg.Denom, DenomToToken(balance), cfg.Token)
+	fmt.Printf("Avaliable balance : %s %s (%s %s)\n", balance.String(), cfg.Denom, DenomToTokenDec(balance).String(), cfg.Token)
 }
 
 // Get keyring name and addresses
@@ -212,7 +184,7 @@ func GetRewards(address string) (*types.RewardsQuery, error) {
 }
 
 // Delegate to validator method
-func TxDelegateToValidator(delegator string, valAddress string, amount float64, keyring string, auto bool) error {
+func TxDelegateToValidator(delegator string, valAddress string, amount decimal.Decimal, keyring string, auto bool) error {
 
 	cmdStr := fmt.Sprintf("tx staking delegate %s %s --from %s", valAddress, DenomToStr(amount), delegator)
 	cmdStr += fmt.Sprintf(" --fees %d%s --gas auto --gas-adjustment %f", cfg.DefaultFee, cfg.Denom, cfg.GasAdjust)
@@ -252,7 +224,7 @@ func TxDelegateToValidator(delegator string, valAddress string, amount float64, 
 }
 
 // Send tokens between accounts method
-func TxSend(fromAddress string, toAddress string, amount float64, keyring string, auto bool) error {
+func TxSend(fromAddress string, toAddress string, amount decimal.Decimal, keyring string, auto bool) error {
 	// fmt.Printf("DelegateToValidator %s %s %s %t\n", delegator, valAddress, denomToStr(amount), auto)
 
 	cmdStr := fmt.Sprintf("tx bank send %s %s %s", fromAddress, toAddress, DenomToStr(amount))

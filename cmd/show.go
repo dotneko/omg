@@ -58,7 +58,7 @@ func showAction(out io.Writer, filterAccount string, addressOnly bool, args []st
 		return err
 	}
 	if len(*l) == 0 {
-		return fmt.Errorf("No accounts in store")
+		return fmt.Errorf("no accounts in store")
 	}
 	// List all addresses as default
 	if len(args) == 0 {
@@ -72,7 +72,7 @@ func showAction(out io.Writer, filterAccount string, addressOnly bool, args []st
 	if len(args) == 1 {
 		address := l.GetAddress(args[0])
 		if address == "" {
-			return fmt.Errorf("No address found for %s", args[0])
+			return fmt.Errorf("no address found for %s", args[0])
 		}
 		fmt.Fprint(out, address)
 	}
