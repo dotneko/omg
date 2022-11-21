@@ -26,7 +26,7 @@ var rmCmd = &cobra.Command{
 }
 
 func init() {
-	addrCmd.AddCommand(rmCmd)
+	addressCmd.AddCommand(rmCmd)
 }
 
 func rmAction(out io.Writer, args []string) error {
