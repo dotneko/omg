@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sort"
 
 	cfg "github.com/dotneko/omg/config"
 )
@@ -158,7 +159,11 @@ func (l *Accounts) GetIndex(alias string) int {
 
 // Save accounts in JSON format
 func (l *Accounts) Save(filename string) error {
-	js, err := json.Marshal(l)
+	ls := *l
+	sort.SliceStable(ls, func(i, j int) bool {
+		return ls[i].Alias < ls[j].Alias
+	})
+	js, err := json.Marshal(ls)
 	if err != nil {
 		return err
 	}
