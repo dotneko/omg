@@ -75,7 +75,8 @@ Restake specified amount
 func init() {
 	txCmd.AddCommand(restakeCmd)
 
-	restakeCmd.Flags().StringP("remainder", "r", "100000000000000anom", "Remainder after restake")
+	restakeCmd.Flags().StringP("remainder", "r", cfg.Remainder, "Remainder after restake")
+
 }
 
 func restakeAction(out io.Writer, remainder string, keyring string, auto bool, args []string) error {

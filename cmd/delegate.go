@@ -32,7 +32,7 @@ var delegateCmd = &cobra.Command{
 		}
 		all, _ := cmd.Flags().GetBool("full")
 		if len(args) == 2 && !all {
-			return fmt.Errorf("no delegation amount nor full flag specified")
+			return fmt.Errorf("no delegation amount nor --full flag specified")
 		}
 		return nil
 	},
@@ -61,7 +61,7 @@ func init() {
 	txCmd.AddCommand(delegateCmd)
 
 	delegateCmd.Flags().BoolP("full", "f", false, "Delegate full balance amount (less remainder)")
-	delegateCmd.Flags().StringP("remainder", "r", cfg.Remainder, "Remainder")
+	delegateCmd.Flags().StringP("remainder", "r", cfg.Remainder, "Remainder after delegate")
 
 }
 
