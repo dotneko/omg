@@ -38,7 +38,11 @@ var rewardsCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		return rewardsAction(os.Stdout, allAccounts, args)
+		raw, err := cmd.Flags().GetBool("raw")
+		if err != nil {
+			return err
+		}
+		return rewardsAction(os.Stdout, allAccounts, raw, args)
 	},
 }
 
@@ -46,9 +50,11 @@ func init() {
 	rootCmd.AddCommand(rewardsCmd)
 
 	rewardsCmd.Flags().BoolP("all", "a", false, "Check all accounts in address book")
+	rewardsCmd.Flags().BoolP("raw", "r", false, "Raw output")
+
 }
 
-func rewardsAction(out io.Writer, allAccounts bool, args []string) error {
+func rewardsAction(out io.Writer, allAccounts bool, raw bool, args []string) error {
 	l := &omg.Accounts{}
 
 	if err := l.Load(cfg.OmgFilename); err != nil {
@@ -68,7 +74,11 @@ func rewardsAction(out io.Writer, allAccounts bool, args []string) error {
 					if err != nil {
 						return err
 					}
-					fmt.Fprintf(out, " - %s - %s %s\n", v.ValidatorAddress, omg.DenomToTokenDec(amt).String(), cfg.Token)
+					if raw {
+						fmt.Fprintf(out, "%s\n%s%s\n", v.ValidatorAddress, v.Reward[0].Amount, v.Reward[0].Denom)
+					} else {
+						fmt.Fprintf(out, "> %s:\n   %25s %s (%s %s)\n", v.ValidatorAddress, omg.PrettifyDenom(amt), cfg.BaseDenom, omg.DenomToTokenDec(amt).String(), cfg.Token)
+					}
 				}
 				fmt.Fprintln(out)
 			}
@@ -96,7 +106,11 @@ func rewardsAction(out io.Writer, allAccounts bool, args []string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(out, "%s - %s %s\n", v.ValidatorAddress, omg.DenomToTokenDec(amt).String(), cfg.Token)
+		if raw {
+			fmt.Fprintf(out, "%s\n%s%s\n", v.ValidatorAddress, v.Reward[0].Amount, v.Reward[0].Denom)
+		} else {
+			fmt.Fprintf(out, "> %s:\n   %25s %s (%s %s)\n", v.ValidatorAddress, omg.PrettifyDenom(amt), cfg.BaseDenom, omg.DenomToTokenDec(amt).String(), cfg.Token)
+		}
 	}
 	return nil
 }

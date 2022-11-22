@@ -82,11 +82,24 @@ func StrToDec(amtstr string) (decimal.Decimal, error) {
 
 // Insert separator for non-decimal numbers as output
 func PrettifyDenom(amt decimal.Decimal) string {
-	amtStr := amt.String()
 	if amt.LessThan(decimal.NewFromInt(1000)) {
-		return amtStr
+		return amt.String()
 	}
-	separator := ","
+	var (
+		amtStr string
+		//decimalStr string
+		dotPos int
+	)
+	dotPos = strings.Index(amt.String(), ".")
+	if dotPos == -1 {
+		amtStr = amt.String()
+		// decimalStr = ""
+	} else {
+		s := strings.Split(amt.String(), ".")
+		amtStr = s[0]
+		// decimalStr = s[1]
+	}
+	separator := "_"
 	startIdx := len(amtStr) % 3
 	if startIdx == 0 {
 		startIdx = 3
@@ -97,7 +110,10 @@ func PrettifyDenom(amt decimal.Decimal) string {
 		outStr = outStr + separator + amtStr[pos:pos+3]
 		pos = pos + 3
 	}
-	return outStr
+	if dotPos == -1 {
+		return outStr
+	}
+	return outStr + "._"
 }
 
 func PrettifyAmount(amount decimal.Decimal, denom string) string {

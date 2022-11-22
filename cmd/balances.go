@@ -23,10 +23,6 @@ var balancesCmd = &cobra.Command{
 	Long:    `Query balances for an account or address.`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		allAccounts, _ := cmd.Flags().GetBool("all")
-		if len(args) == 0 {
-			cmd.Help()
-			os.Exit(0)
-		}
 		if len(args) != 1 && !allAccounts {
 			fmt.Printf("Error: expecting [name|address] or --all flag\n")
 			cmd.Help()
@@ -39,7 +35,11 @@ var balancesCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		return balancesAction(os.Stdout, allAccounts, args)
+		raw, err := cmd.Flags().GetBool("raw")
+		if err != nil {
+			return err
+		}
+		return balancesAction(os.Stdout, allAccounts, raw, args)
 	},
 }
 
@@ -47,9 +47,11 @@ func init() {
 	rootCmd.AddCommand(balancesCmd)
 
 	balancesCmd.Flags().BoolP("all", "a", false, "Check all accounts in address book")
+	balancesCmd.Flags().BoolP("raw", "r", false, "Raw output")
+
 }
 
-func balancesAction(out io.Writer, allAccounts bool, args []string) error {
+func balancesAction(out io.Writer, allAccounts bool, raw bool, args []string) error {
 	l := &omg.Accounts{}
 
 	if err := l.Load(cfg.OmgFilename); err != nil {
@@ -63,7 +65,11 @@ func balancesAction(out io.Writer, allAccounts bool, args []string) error {
 					fmt.Printf("Error: %s\n", err.Error())
 					continue
 				}
-				fmt.Fprintf(out, "%10s [%s]: %s %s (%s %s)\n", acc.Alias, acc.Address, balance.String(), cfg.BaseDenom, omg.DenomToTokenDec(balance).String(), cfg.Token)
+				if raw {
+					fmt.Fprintf(out, "%10s %s%s\n", acc.Address, balance.String(), cfg.BaseDenom)
+				} else {
+					fmt.Fprintf(out, "%10s [%s]: %30s %s (%s %s)\n", acc.Alias, acc.Address, omg.PrettifyDenom(balance), cfg.BaseDenom, omg.DenomToTokenDec(balance).String(), cfg.Token)
+				}
 			}
 		}
 		return nil
@@ -85,6 +91,10 @@ func balancesAction(out io.Writer, allAccounts bool, args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(out, header+"%s %s (%s %s)\n", balance.String(), cfg.BaseDenom, omg.DenomToTokenDec(balance).String(), cfg.Token)
+	if raw {
+		fmt.Fprintf(out, "%s%s", balance.String(), cfg.BaseDenom)
+	} else {
+		fmt.Fprintf(out, header+"%s %s (%s %s)\n", balance.String(), cfg.BaseDenom, omg.DenomToTokenDec(balance).String(), cfg.Token)
+	}
 	return nil
 }

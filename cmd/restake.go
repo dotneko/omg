@@ -126,6 +126,7 @@ func restakeAction(out io.Writer, remainder string, keyring string, auto bool, a
 	if r.Total[0].Denom != cfg.BaseDenom {
 		return fmt.Errorf("expected total denom to be %q, got %q", cfg.BaseDenom, r.Total[0].Denom)
 	}
+	fmt.Fprintf(out, r.Total[0].Amount)
 	rewards, err := omg.StrToDec(r.Total[0].Amount)
 	if err != nil {
 		return err
