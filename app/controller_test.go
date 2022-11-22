@@ -76,11 +76,11 @@ func TestPrettifyDenom(t *testing.T) {
 	var testOutputs = []insertTest{
 		{decimal.NewFromFloat(1), "1"},
 		{decimal.NewFromFloat(999), "999"},
-		{decimal.NewFromFloat(1000), "1,000"},
-		{decimal.NewFromFloat(100099), "100,099"},
-		{decimal.NewFromFloat(1000000), "1,000,000"},
-		{decimal.NewFromFloat(99999999), "99,999,999"},
-		{decimal.NewFromFloat(1000000000000000000), "1,000,000,000,000,000,000"},
+		{decimal.NewFromFloat(1000), "1_000"},
+		{decimal.NewFromFloat(100099), "100_099"},
+		{decimal.NewFromFloat(1000000), "1_000_000"},
+		{decimal.NewFromFloat(99999999), "99_999_999"},
+		{decimal.NewFromFloat(1000000000000000000), "1_000_000_000_000_000_000"},
 	}
 	for _, test := range testOutputs {
 		output := omg.PrettifyDenom(test.amt)
