@@ -18,10 +18,12 @@ func TestParseConfig(t *testing.T) {
 	require.NotEmpty(t, ChainId, "ChainId should not be empty")
 	require.NotEmpty(t, AddressPrefix, "AddressPrefix should not be empty")
 	require.NotEmpty(t, ValoperPrefix, "ValoperPrefix should not be empty")
-	require.NotEmpty(t, Denom, "Denom should not be empty")
+	require.NotEmpty(t, BaseDenom, "BaseDenom should not be empty")
 	require.NotEmpty(t, Token, "Token should not be empty")
 	require.NotEmpty(t, Decimals, "Decimals should not be empty")
 	require.NotEmpty(t, DefaultFee, "DefaultFee should not be empty")
 	require.NotEmpty(t, GasAdjust, "GasAdjust should not be empty")
 	require.NotEmpty(t, KeyringBackend, "KeyringDefault should not be empty")
+	require.NotEmpty(t, Remainder, "Remainder should not be empty")
+
 }

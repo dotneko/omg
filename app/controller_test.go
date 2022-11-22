@@ -21,14 +21,14 @@ func TestConversionDec(t *testing.T) {
 
 	var conversionTests = []conversionTest{
 		{d10, cfg.Token, d10e18},
-		{d10e18, cfg.Denom, d10},
+		{d10e18, cfg.BaseDenom, d10},
 		{decimal.NewFromFloat(0.00000000012345), cfg.Token, decimal.NewFromFloat(123450000)},
-		{decimal.NewFromFloat(123450000), cfg.Denom, decimal.NewFromFloat(0.00000000012345)},
+		{decimal.NewFromFloat(123450000), cfg.BaseDenom, decimal.NewFromFloat(0.00000000012345)},
 	}
 	for _, test := range conversionTests {
 
 		var convAmt decimal.Decimal
-		if test.inputDenom == cfg.Denom {
+		if test.inputDenom == cfg.BaseDenom {
 			convAmt = omg.DenomToTokenDec(test.inputAmt)
 		} else if test.inputDenom == cfg.Token {
 			convAmt = omg.TokenToDenomDec(test.inputAmt)
@@ -50,7 +50,7 @@ func TestStrSplitAmountDenomDec(t *testing.T) {
 		{"1000nom", decimal.NewFromFloat(1000), "nom"},
 		{"1000000anom", decimal.NewFromFloat(1000000), "anom"},
 		{"-1234567890anom", decimal.NewFromFloat(-1234567890), "anom"},
-		{fmt.Sprintf("0.00001%s", cfg.Denom), decimal.NewFromFloat(0.00001), cfg.Denom},
+		{fmt.Sprintf("0.00001%s", cfg.BaseDenom), decimal.NewFromFloat(0.00001), cfg.BaseDenom},
 		{fmt.Sprintf("10%s", cfg.Token), decimal.NewFromFloat(10), cfg.Token},
 		{"0.123", decimal.NewFromFloat(0.123), ""},
 		{"99999", decimal.NewFromFloat(99999), ""},

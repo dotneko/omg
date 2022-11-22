@@ -20,6 +20,13 @@ var showCmd = &cobra.Command{
 	Use:     "show [name]",
 	Short:   "Show one or all addresses",
 	Long:    `Show one or more addresses for a given name in the address book`,
+	Args: func(cmd *cobra.Command, args []string) error {
+		if err := cobra.RangeArgs(0, 1)(cmd, args); err != nil {
+			cmd.Help()
+			os.Exit(0)
+		}
+		return nil
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		filterNormal, err := cmd.Flags().GetBool("regular")
 		if err != nil {

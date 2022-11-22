@@ -9,34 +9,6 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-func GetAliasAddress(r io.Reader, args ...string) (string, string, error) {
-	var alias, address = "", ""
-	if len(args) >= 2 {
-		return args[0], args[1], nil
-	}
-	s := bufio.NewScanner(r)
-	fmt.Print("Enter name/alias : ")
-	s.Scan()
-	if err := s.Err(); err != nil {
-		return "", "", err
-	}
-	if len(s.Text()) == 0 {
-		return "", "", fmt.Errorf("alias cannot be blank")
-	}
-	alias = s.Text()
-	fmt.Print("Enter an address : ")
-	s.Scan()
-	if err := s.Err(); err != nil {
-		return "", "", err
-	}
-	if len(s.Text()) == 0 {
-		return "", "", fmt.Errorf("address cannot be blank")
-	}
-	address = s.Text()
-	return alias, address, nil
-}
-
-// Get accounts for transaction from args or stdin
 func GetTxAccounts(r io.Reader, action string, args ...string) (string, string, error) {
 	var (
 		acc1 string = ""
@@ -95,6 +67,9 @@ func GetAmount(r io.Reader, action string, address string, args ...string) (deci
 		if err = s.Err(); err != nil {
 			return decimal.NewFromInt(0), err
 		}
+		if s.Text() == "" {
+			return decimal.NewFromInt(0), fmt.Errorf("empty response - aborting")
+		}
 		amount, denom, err = StrSplitAmountDenomDec(s.Text())
 		if err != nil {
 			return decimal.NewFromInt(0), err
@@ -112,10 +87,10 @@ func GetAmount(r io.Reader, action string, address string, args ...string) (deci
 	// Convert to denom amount if token given
 	if denom == cfg.Token {
 		denomAmount = TokenToDenomDec(amount)
-	} else if denom == cfg.Denom {
+	} else if denom == cfg.BaseDenom {
 		denomAmount = amount
 	} else {
-		return decimal.NewFromInt(0), fmt.Errorf("invalid denomination - must be: %s / %s)", cfg.Denom, cfg.Token)
+		return decimal.NewFromInt(0), fmt.Errorf("invalid denomination - must be: %s / %s)", cfg.BaseDenom, cfg.Token)
 	}
 
 	// Check if sufficient balance
@@ -124,7 +99,7 @@ func GetAmount(r io.Reader, action string, address string, args ...string) (deci
 		return decimal.NewFromInt(0), err
 	}
 	if denomAmount.GreaterThan(balance) {
-		return decimal.NewFromInt(0), fmt.Errorf("insufficient funds (requested %s%s)", denomAmount, cfg.Denom)
+		return decimal.NewFromInt(0), fmt.Errorf("insufficient funds (requested %s%s)", denomAmount, cfg.BaseDenom)
 	}
 	return denomAmount, nil
 }

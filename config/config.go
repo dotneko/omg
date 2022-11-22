@@ -14,12 +14,13 @@ type Config struct {
 	ChainId        string  `mapstructure:"chain_id"`
 	AddressPrefix  string  `mapstructure:"address_prefix"`
 	ValoperPrefix  string  `mapstructure:"valoper_prefix"`
-	Denom          string  `mapstructure:"denom"`
+	BaseDenom      string  `mapstructure:"base_denom"`
 	Token          string  `mapstructure:"token"`
 	Decimals       int32   `mapstructure:"decimals"`
-	DefaultFee     int64   `mapstructure:"default_fee"`
+	DefaultFee     string  `mapstructure:"default_fee"`
 	GasAdjust      float32 `mapstructure:"gas_adjust"`
 	KeyringBackend string  `mapstructure:"keyring_backend"`
+	Remainder      string  `mapstructure:"remainder"`
 }
 
 var (
@@ -29,12 +30,13 @@ var (
 	ChainId        string
 	AddressPrefix  string
 	ValoperPrefix  string
-	Denom          string
+	BaseDenom      string
 	Token          string
 	Decimals       int32
-	DefaultFee     int64
+	DefaultFee     string
 	GasAdjust      float32
 	KeyringBackend string
+	Remainder      string
 )
 
 func init() {
@@ -62,7 +64,7 @@ func ParseConfig(pathstr string) error {
 
 	err = viper.ReadInConfig()
 	if err != nil {
-		return fmt.Errorf("Error reading configuration, %s", err.Error())
+		return fmt.Errorf("error reading configuration, %s", err.Error())
 	}
 	err = viper.Unmarshal(&cfg)
 	if err != nil {
@@ -75,12 +77,13 @@ func ParseConfig(pathstr string) error {
 	ChainId = cfg.ChainId
 	AddressPrefix = cfg.AddressPrefix
 	ValoperPrefix = cfg.ValoperPrefix
-	Denom = cfg.Denom
+	BaseDenom = cfg.BaseDenom
 	Token = cfg.Token
 	Decimals = cfg.Decimals
 	DefaultFee = cfg.DefaultFee
 	GasAdjust = cfg.GasAdjust
 	KeyringBackend = cfg.KeyringBackend
+	Remainder = cfg.Remainder
 
 	return nil
 }

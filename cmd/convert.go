@@ -21,30 +21,40 @@ var (
 	convertCmd = &cobra.Command{
 		Aliases: []string{"cv", "c"},
 		Use:     "convert [amount][denom]",
-		Short:   fmt.Sprintf("Conversion between %s and %s", cfg.Denom, cfg.Token),
+		Short:   fmt.Sprintf("Conversion between %s and %s", cfg.BaseDenom, cfg.Token),
 		Long:    `Conversion tool between token and denom amounts`,
 		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 0 {
+				cmd.Help()
+				os.Exit(0)
+			}
 			if err := cobra.RangeArgs(1, 2)(cmd, args); err != nil {
-				return err
+				return fmt.Errorf("expecting [amount][denom]")
 			}
 			if len(args) == 2 {
-				if args[1] != cfg.Denom && args[1] != cfg.Token {
-					fmt.Printf("Error: denom must be %q or %q; got %q\n", cfg.Denom, cfg.Token, args[1])
+				if args[1] != cfg.BaseDenom && args[1] != cfg.Token {
+					fmt.Printf("Error: denom must be %q or %q; got %q\n", cfg.BaseDenom, cfg.Token, args[1])
 				}
 			}
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return convertAction(os.Stdout, args)
+			detail, err := cmd.Flags().GetBool("detail")
+			if err != nil {
+				return err
+			}
+			return convertAction(os.Stdout, detail, args)
 		},
 	}
 )
 
 func init() {
 	rootCmd.AddCommand(convertCmd)
+	convertCmd.Flags().BoolP("detail", "d", false, "Output detail")
+
 }
 
-func convertAction(out io.Writer, args []string) error {
+func convertAction(out io.Writer, detail bool, args []string) error {
 	var (
 		amount decimal.Decimal
 		denom  string
@@ -66,13 +76,12 @@ func convertAction(out io.Writer, args []string) error {
 		convAmount decimal.Decimal
 		convDenom  string
 	)
-	if denom == cfg.Denom {
-		convAmount = omg.DenomToTokenDec(amount)
-		convDenom = cfg.Token
-	} else if denom == cfg.Token {
-		convAmount = omg.TokenToDenomDec(amount)
-		convDenom = cfg.Denom
+	convAmount, convDenom = omg.ConvertDecDenom(amount, denom)
+
+	if detail {
+		fmt.Fprintf(out, "%s => %s\n", omg.PrettifyAmount(amount, denom), omg.PrettifyAmount(convAmount, convDenom))
+	} else {
+		fmt.Fprintf(out, "%s%s ", convAmount.String(), convDenom)
 	}
-	fmt.Fprintf(out, "%s%s", convAmount.String(), convDenom)
 	return nil
 }

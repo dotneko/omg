@@ -18,9 +18,22 @@ import (
 // balancesCmd represents the balances command
 var balancesCmd = &cobra.Command{
 	Aliases: []string{"bal", "b"},
-	Use:     "balances [alias | address]",
+	Use:     "balances [name|address]",
 	Short:   "Query balances for an account or address",
 	Long:    `Query balances for an account or address.`,
+	Args: func(cmd *cobra.Command, args []string) error {
+		allAccounts, _ := cmd.Flags().GetBool("all")
+		if len(args) == 0 {
+			cmd.Help()
+			os.Exit(0)
+		}
+		if len(args) != 1 && !allAccounts {
+			fmt.Printf("Error: expecting [name|address] or --all flag\n")
+			cmd.Help()
+			os.Exit(0)
+		}
+		return nil
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		allAccounts, err := cmd.Flags().GetBool("all")
 		if err != nil {
@@ -47,16 +60,15 @@ func balancesAction(out io.Writer, allAccounts bool, args []string) error {
 			if omg.IsNormalAddress(acc.Address) {
 				balance, err := omg.GetBalanceDec(acc.Address)
 				if err != nil {
-					return err
+					fmt.Printf("Error: %s\n", err.Error())
+					continue
 				}
-				fmt.Fprintf(out, "%10s [%s]: %s %s (%s %s)\n", acc.Alias, acc.Address, balance.String(), cfg.Denom, omg.DenomToTokenDec(balance).String(), cfg.Token)
+				fmt.Fprintf(out, "%10s [%s]: %s %s (%s %s)\n", acc.Alias, acc.Address, balance.String(), cfg.BaseDenom, omg.DenomToTokenDec(balance).String(), cfg.Token)
 			}
 		}
 		return nil
 	}
-	if len(args) == 0 {
-		return fmt.Errorf("no account provided")
-	}
+
 	var address string
 	var header string
 	if omg.IsNormalAddress(args[0]) {
@@ -73,6 +85,6 @@ func balancesAction(out io.Writer, allAccounts bool, args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(out, header+"%s %s (%s %s)\n", balance.String(), cfg.Denom, omg.DenomToTokenDec(balance).String(), cfg.Token)
+	fmt.Fprintf(out, header+"%s %s (%s %s)\n", balance.String(), cfg.BaseDenom, omg.DenomToTokenDec(balance).String(), cfg.Token)
 	return nil
 }

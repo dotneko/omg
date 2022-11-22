@@ -33,6 +33,21 @@ func TokenToDenomDec(amt decimal.Decimal) decimal.Decimal {
 	return d
 }
 
+func ConvertDecDenom(amount decimal.Decimal, denom string) (decimal.Decimal, string) {
+	var (
+		convAmount decimal.Decimal
+		convDenom  string
+	)
+	if denom == cfg.BaseDenom {
+		convAmount = DenomToTokenDec(amount)
+		convDenom = cfg.Token
+	} else if denom == cfg.Token {
+		convAmount = TokenToDenomDec(amount)
+		convDenom = cfg.BaseDenom
+	}
+	return convAmount, convDenom
+}
+
 // Split denominated amount to amount and denom (Decimal)
 func StrSplitAmountDenomDec(amtstr string) (decimal.Decimal, string, error) {
 	var NumericRegex = regexp.MustCompile(`[^0-9.-]+`)
@@ -43,7 +58,7 @@ func StrSplitAmountDenomDec(amtstr string) (decimal.Decimal, string, error) {
 		return decimal.NewFromInt(0), "", err
 	}
 	denom := AlphaRegex.ReplaceAllString(amtstr, "")
-	if denom != cfg.Denom && denom != cfg.Token {
+	if denom != cfg.BaseDenom && denom != cfg.Token {
 		return amt, "", nil
 	}
 	return amt, denom, nil
@@ -51,7 +66,7 @@ func StrSplitAmountDenomDec(amtstr string) (decimal.Decimal, string, error) {
 
 // Convert denom to annotated string
 func DenomToStr(amt decimal.Decimal) string {
-	return fmt.Sprintf("%s%s", amt.String(), cfg.Denom)
+	return fmt.Sprintf("%s%s", amt.String(), cfg.BaseDenom)
 }
 
 // Strip non-numeric characters and convert to decimal
@@ -86,7 +101,7 @@ func PrettifyDenom(amt decimal.Decimal) string {
 }
 
 func PrettifyAmount(amount decimal.Decimal, denom string) string {
-	if denom == cfg.Denom {
+	if denom == cfg.BaseDenom {
 		return fmt.Sprintf("%s %s", PrettifyDenom(amount), denom)
 	}
 	if denom == cfg.Token {
@@ -100,7 +115,7 @@ func GetBalancesQuery(address string) (*types.BalancesQuery, error) {
 	cmdStr := fmt.Sprintf("query bank balances %s %s", jsonFlag, address)
 	out, err := exec.Command(cfg.Daemon, strings.Split(cmdStr, " ")...).Output()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot get balance for %s", address)
 	}
 	if !json.Valid(out) {
 		return nil, errors.New("invalid json")
@@ -133,7 +148,7 @@ func CheckBalances(address string) {
 	if err != nil {
 		fmt.Sprintln(err)
 	}
-	fmt.Printf("Avaliable balance : %s %s (%s %s)\n", balance.String(), cfg.Denom, DenomToTokenDec(balance).String(), cfg.Token)
+	fmt.Printf("Avaliable balance : %s %s (%s %s)\n", balance.String(), cfg.BaseDenom, DenomToTokenDec(balance).String(), cfg.Token)
 }
 
 // Get keyring name and addresses
@@ -187,7 +202,7 @@ func GetRewards(address string) (*types.RewardsQuery, error) {
 func TxDelegateToValidator(delegator string, valAddress string, amount decimal.Decimal, keyring string, auto bool) error {
 
 	cmdStr := fmt.Sprintf("tx staking delegate %s %s --from %s", valAddress, DenomToStr(amount), delegator)
-	cmdStr += fmt.Sprintf(" --fees %d%s --gas auto --gas-adjustment %f", cfg.DefaultFee, cfg.Denom, cfg.GasAdjust)
+	cmdStr += fmt.Sprintf(" --fees %s --gas auto --gas-adjustment %f", cfg.DefaultFee, cfg.GasAdjust)
 	cmdStr += fmt.Sprintf(" --keyring-backend %s --chain-id %s", keyring, cfg.ChainId)
 
 	fmt.Printf("Executing: %s %s\n", cfg.Daemon, cmdStr)
@@ -229,7 +244,7 @@ func TxSend(fromAddress string, toAddress string, amount decimal.Decimal, keyrin
 
 	cmdStr := fmt.Sprintf("tx bank send %s %s %s", fromAddress, toAddress, DenomToStr(amount))
 	//cmdStr += fmt.Sprintf(" --fees %d%s --gas auto --gas-adjustment %f", defaultFee, denom, gasAdjust)
-	cmdStr += fmt.Sprintf(" --gas auto --gas-adjustment %f", cfg.GasAdjust)
+	cmdStr += fmt.Sprintf(" --fees %s--gas auto --gas-adjustment %f", cfg.DefaultFee, cfg.GasAdjust)
 	cmdStr += fmt.Sprintf(" --keyring-backend %s --chain-id %s", keyring, cfg.ChainId)
 
 	fmt.Printf("Executing: %s %s\n", cfg.Daemon, cmdStr)
@@ -268,7 +283,7 @@ func TxSend(fromAddress string, toAddress string, amount decimal.Decimal, keyrin
 func TxWithdrawRewards(out io.Writer, name string, keyring string, auto bool) error {
 
 	cmdStr := fmt.Sprintf("tx distribution withdraw-all-rewards --from %s", name)
-	cmdStr += fmt.Sprintf(" --fees %d%s --gas auto --gas-adjustment %f", cfg.DefaultFee, cfg.Denom, cfg.GasAdjust)
+	cmdStr += fmt.Sprintf(" --fees %s --gas auto --gas-adjustment %f", cfg.DefaultFee, cfg.GasAdjust)
 	cmdStr += fmt.Sprintf(" --keyring-backend %s --chain-id %s", keyring, cfg.ChainId)
 
 	fmt.Fprintf(out, "Executing: %s %s\n", cfg.Daemon, cmdStr)

@@ -36,11 +36,11 @@ Ensure `.omgconfig.yaml` in home directory or binary path
 
 ## Usage
 
-A full list of commands is shown by running `omg` without any flags
+A full list of commands is shown by running `omg` with the `--help` or `-h` flag
 
 ### Managing Addresses
 
-The address book is managed using `omg addr` and its subcommands
+The address book is managed using `omg address` or its alias `omg addr` and its subcommands
 
 ```
   add         Add an address to the address book
@@ -106,10 +106,10 @@ omg rewards --all
 Transactions functions are listed under `tx` command:
 
 ```
-  delegate    Delegate tokens from account to validator
-  restake     Restake rewards for account to validator
-  send        Send tokens from an account to another account/address
-  wdrewards   Withdraw all rewards for account
+  delegate           Delegate tokens from account to validator
+  restake            Restake rewards for account to validator
+  send               Send tokens from an account to another account/address
+  withdraw-rewards   Withdraw all rewards for account
 ```
 
 All transactions assume that the account `name` in the address book matches the name of the user's key in the keyring, and will fail if the onomyd cannot find the key in the keyring.
@@ -175,9 +175,14 @@ omg tx send user1 onomy1234567890123456789012345678901234567xx 1000000anom
 
 #### Withdraw rewards
 
+Withdraw all rewards for *user1*
+```
+omg tx withdraw-rewards user1
+```
+
 Automated withdraw all rewards for *user1*
 ```
-omg tx wdrewards user1 --auto
+omg tx wd user1 --auto
 ```
 
 ## Conversion

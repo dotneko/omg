@@ -148,6 +148,16 @@ func (l *Accounts) GetAddress(alias string) string {
 }
 
 // Get index for given alias
+func (l *Accounts) GetIndexAddress(alias string) (int, string) {
+	for idx, a := range *l {
+		if alias == a.Alias {
+			return idx, a.Address
+		}
+	}
+	return -1, ""
+}
+
+// Get index for given alias
 func (l *Accounts) GetIndex(alias string) int {
 	for idx, a := range *l {
 		if alias == a.Alias {

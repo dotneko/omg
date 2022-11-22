@@ -11,15 +11,27 @@ import (
 
 	omg "github.com/dotneko/omg/app"
 	cfg "github.com/dotneko/omg/config"
+	"github.com/shopspring/decimal"
 
 	"github.com/spf13/cobra"
 )
 
 // sendCmd represents the send command
 var sendCmd = &cobra.Command{
-	Use:   "send [name] [name | address] [amount][denom]",
-	Short: "Send tokens from an account to another account/address",
-	Long:  `Send tokens from an account to another account/address`,
+	Aliases: []string{"s"},
+	Use:     "send [from: name] [to: name|address] [amount][denom]",
+	Short:   "Send tokens from an account to another account/address",
+	Long:    `Send tokens from an account to another account/address`,
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) == 0 {
+			cmd.Help()
+			os.Exit(0)
+		}
+		if err := cobra.ExactArgs(3)(cmd, args); err != nil {
+			return fmt.Errorf("expecting [from: name] [to: name|address] [amount][denom] as arguments")
+		}
+		return nil
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		auto, err := cmd.Flags().GetBool("auto")
 		if err != nil {
@@ -46,6 +58,8 @@ func sendAction(out io.Writer, auto bool, keyring string, args []string) error {
 		to          string
 		fromAddress string
 		toAddress   string
+		amount      decimal.Decimal
+		denom       string
 		err         error
 	)
 	l := &omg.Accounts{}
@@ -53,20 +67,8 @@ func sendAction(out io.Writer, auto bool, keyring string, args []string) error {
 	if err := l.Load(cfg.OmgFilename); err != nil {
 		return err
 	}
-	if len(args) == 0 {
-		from, to, err = omg.GetTxAccounts(os.Stdin, "send", args...)
-		if err != nil {
-			return err
-		}
-	} else if len(args) >= 2 {
-		from = args[0]
-		if omg.IsNormalAddress(args[1]) {
-			to = args[1]
-			toAddress = args[1]
-		} else {
-			to = args[1]
-		}
-	}
+	// Parse and validate [from]
+	from = args[0]
 	fromAddress = l.GetAddress(from)
 	if fromAddress == "" {
 		return fmt.Errorf("no account found")
@@ -74,7 +76,13 @@ func sendAction(out io.Writer, auto bool, keyring string, args []string) error {
 	if !omg.IsNormalAddress(fromAddress) {
 		return fmt.Errorf("invalid from account: %s", fromAddress)
 	}
-	// Check if valid validator address
+	// Parse and validate [to]
+	if omg.IsNormalAddress(args[1]) {
+		to = args[1]
+		toAddress = args[1]
+	} else {
+		to = args[1]
+	}
 	if !omg.IsNormalAddress(to) {
 		toAddress = l.GetAddress(to)
 		if toAddress == "" {
@@ -84,21 +92,33 @@ func sendAction(out io.Writer, auto bool, keyring string, args []string) error {
 	if !omg.IsNormalAddress(toAddress) {
 		return fmt.Errorf("invalid address: %s", toAddress)
 	}
-	amount, err := omg.GetAmount(os.Stdin, "send", fromAddress, args...)
+	// Parse amount
+	amount, denom, err = omg.StrSplitAmountDenomDec(args[2])
+	if denom == cfg.Token {
+		amount, denom = omg.ConvertDecDenom(amount, denom)
+	}
 	if err != nil {
 		return err
 	}
 	// Check balance for sender
-	if to == toAddress {
-		fmt.Fprintf(out, "To    : %s\n", toAddress)
-	} else {
-		fmt.Fprintf(out, "To    : %s [%s]\n", to, toAddress)
+	balance, err := omg.GetBalanceDec(fromAddress)
+	if err != nil {
+		return fmt.Errorf("error querying balance for %s", from)
 	}
-	fmt.Fprintf(out, "From  : %s [%s]\n", from, fromAddress)
-	omg.CheckBalances(fromAddress)
+	// Check balance for sender
+	if to == toAddress {
+		fmt.Fprintf(out, "To                : %s\n", toAddress)
+	} else {
+		fmt.Fprintf(out, "To                : %s [%s]\n", to, toAddress)
+	}
+	fmt.Fprintf(out, "From              : %s [%s]\n", from, fromAddress)
+	fmt.Fprintf(out, "Available balance : %s\n", omg.PrettifyAmount(balance, denom))
+	fmt.Fprintf(out, "Amount requested  : %s\n", omg.PrettifyAmount(amount, denom))
+	fmt.Fprintln(out, "----")
 
-	fmt.Fprintf(out, "Amount requested  : %s\n", omg.PrettifyAmount(amount, cfg.Denom))
-
+	if amount.GreaterThan(balance) {
+		return fmt.Errorf("insufficient balance for send amount")
+	}
 	err = omg.TxSend(fromAddress, toAddress, amount, keyring, auto)
 	if err != nil {
 		return err

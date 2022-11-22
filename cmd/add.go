@@ -33,13 +33,29 @@ The entry [address] can be a normal address or a validator/valoper address.
 Examples:
 
 Adding a normal address:
-# omg addr add nbuser %s12345678901234567890123456789
+# omg address add nbuser %s12345678901234567890123456789
 
 Adding a validator/valoper address:
-# omg addr add validator %s12345678901234567890123456789
+# omg address add validator %s12345678901234567890123456789
 
 An input prompt would ask for the [name] and [address] if these are not specified.
 `, cfg.Daemon, cfg.AddressPrefix, cfg.ValoperPrefix),
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) == 0 {
+			cmd.Help()
+			os.Exit(0)
+		}
+		if err := cobra.ExactArgs(2)(cmd, args); err != nil {
+			return fmt.Errorf("expecting [name] [address] as arguments")
+		}
+		if omg.IsValidAddress(args[0]) {
+			return fmt.Errorf("[name] cannot be an address")
+		}
+		if !omg.IsValidAddress(args[1]) {
+			return fmt.Errorf("%s is not a valid address", args[1])
+		}
+		return nil
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return addAction(os.Stdout, args)
 	},
@@ -56,11 +72,10 @@ func addAction(out io.Writer, args []string) error {
 	if err := l.Load(cfg.OmgFilename); err != nil {
 		return err
 	}
-	alias, address, err := omg.GetAliasAddress(os.Stdin, args...)
-	if err != nil {
-		return err
-	}
-	err = l.Add(alias, address)
+	alias := args[0]
+	address := args[1]
+
+	err := l.Add(alias, address)
 	if err != nil {
 		return err
 	}

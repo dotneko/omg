@@ -16,11 +16,20 @@ import (
 
 // wdrewardsCmd represents the wdrewards command
 var wdrewardsCmd = &cobra.Command{
-	Aliases: []string{"wd", "wr"},
+	Aliases: []string{"wd", "wr", "w"},
 	Use:     "withdraw-rewards [name]",
 	Short:   "Withdraw all rewards for account",
 	Long:    `Withdraw all rewards for account`,
-	Args:    cobra.ExactArgs(1),
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) == 0 {
+			cmd.Help()
+			os.Exit(0)
+		}
+		if err := cobra.ExactArgs(1)(cmd, args); err != nil {
+			return fmt.Errorf("expecting [name] as argument")
+		}
+		return nil
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		keyring, err := cmd.Flags().GetString("keyring")
 		if err != nil {

@@ -16,8 +16,8 @@ import (
 
 // modifyCmd represents the modify command
 var modifyCmd = &cobra.Command{
-	Aliases: []string{"mod", "mv", "rename"},
-	Use:     "modify [name] [new name] *OPTION -a [new address]",
+	Aliases: []string{"mod", "mv", "m", "rename"},
+	Use:     "modify [name] [new name] *OPTIONAL -a [new address]",
 	Short:   "Modify an address book entry",
 	Long: `Modify an address book entry
 	
@@ -26,7 +26,22 @@ Examples:
 # omg addr modify user1 user2
 # omg addr modify user1 user2 -a newaddress1234567890123456789
 # omg addr modify user1 -a newaddress1234567890123456789`,
-	Args: cobra.RangeArgs(1, 2),
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) == 0 {
+			cmd.Help()
+			os.Exit(0)
+		}
+		if err := cobra.RangeArgs(1, 2)(cmd, args); err != nil {
+			return fmt.Errorf("expecting [name] [new name] as arguments")
+		}
+		if omg.IsValidAddress(args[0]) {
+			return fmt.Errorf("[name] cannot be an address")
+		}
+		if len(args) > 1 && omg.IsValidAddress(args[1]) {
+			return fmt.Errorf("[new name] cannot be an address")
+		}
+		return nil
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		address, err := cmd.Flags().GetString("address")
 		if err != nil {

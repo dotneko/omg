@@ -18,9 +18,21 @@ import (
 // rewardsCmd represents the rewards command
 var rewardsCmd = &cobra.Command{
 	Aliases: []string{"rw", "r"},
-	Use:     "rewards [name | address]",
+	Use:     "rewards [name|address]",
 	Short:   "Query rewards for an account or address",
 	Long:    `Query rewards for an account or address.`,
+	Args: func(cmd *cobra.Command, args []string) error {
+
+		if err := cobra.RangeArgs(0, 1)(cmd, args); err != nil {
+			return fmt.Errorf("expecting [name|address] as argument or --all flag")
+		}
+		allAccounts, _ := cmd.Flags().GetBool("all")
+		if len(args) == 0 && !allAccounts {
+			cmd.Help()
+			os.Exit(0)
+		}
+		return nil
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		allAccounts, err := cmd.Flags().GetBool("all")
 		if err != nil {

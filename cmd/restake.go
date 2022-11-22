@@ -18,10 +18,43 @@ import (
 
 // restakeCmd represents the restake command
 var restakeCmd = &cobra.Command{
-	Use:   "restake [name] [validator alias]",
-	Short: "Restake rewards for account to validator",
-	Long:  `Withdraw all rewards for account, then re-delegate to validator.`,
-	Args:  cobra.RangeArgs(2, 3),
+	Aliases: []string{"r"},
+	Use:     "restake [name] [validator|valoper-address] *OPTIONAL:[amount][denom]",
+	Short:   "Withdraw rewards and restake to validator",
+	Long: fmt.Sprintf(`Withdraw all rewards for account, then re-delegate to validator.
+
+A remainder specified by the '--remainder' or ='-f' flag will be deducted from the 
+updated balance after rewards withdrawn, and is effective even if a delegation amount
+is specified.
+
+If a delegation amount is specified, the final balance after delegation must exceed the
+remainder or the transaction will abort. Therefore:
+
+	[amount] must be >= [balance after withdraw rewards] - [remainder]
+
+The remainder can be set in the configuration file, currently: %s
+
+Examples:
+
+Restake full balance (less default remainder):
+# omg tx restake user1 validator1
+
+Restake full balance (specify remainder):
+# omg tx restake user1 validator1 -r 1000000anom
+
+Restake specified amount
+# omg tx restake user1 validator1 1nom
+	`, cfg.Remainder),
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) == 0 {
+			cmd.Help()
+			os.Exit(0)
+		}
+		if err := cobra.RangeArgs(2, 3)(cmd, args); err != nil {
+			fmt.Printf("Error: %s\n", fmt.Errorf("expecting [account] [validator|valoper-address] as arguments"))
+		}
+		return nil
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		keyring, err := cmd.Flags().GetString("keyring")
 		if err != nil {
@@ -47,42 +80,39 @@ func init() {
 
 func restakeAction(out io.Writer, remainder string, keyring string, auto bool, args []string) error {
 	// Ensure all arguments provided
-	if len(args) != 2 {
-		return fmt.Errorf("expecting [delegator] [validator]")
-	}
+
 	delegator := args[0]
 	validator := args[1]
+	var (
+		delegatorAddress string
+		valAddress       string
+		amount           decimal.Decimal
+		balanceBefore    decimal.Decimal
+		denom            string = cfg.BaseDenom
+		remainAmt        decimal.Decimal
+		remainDenom      string
+		expectedBalance  decimal.Decimal
+	)
 
-	remainAmt, denom, err := omg.StrSplitAmountDenomDec(remainder)
-	if err != nil {
-		return err
-	}
-	if denom == cfg.Token {
-		remainAmt = omg.TokenToDenomDec(remainAmt)
-		denom = cfg.Denom
-	} else if denom != cfg.Denom {
-		return fmt.Errorf("denomination not specified")
-	}
 	l := &omg.Accounts{}
 	if err := l.Load(cfg.OmgFilename); err != nil {
 		return err
 	}
-	delegatorAddress := l.GetAddress(delegator)
+	// Check if delegator in list and is not validator account
+	delegatorAddress = l.GetAddress(delegator)
 
 	if !omg.IsNormalAddress(delegatorAddress) {
-		return fmt.Errorf("invalid delegator account: %s", delegatorAddress)
+		return fmt.Errorf("invalid delegator address for %s", delegator)
 	}
-	var valAddress string
+	// Check if valid validator or validator address
 	if omg.IsValidatorAddress(validator) {
 		valAddress = validator
 	} else {
 		valAddress = l.GetAddress(validator)
-
 		if !omg.IsValidatorAddress(valAddress) {
-			return fmt.Errorf("invalid validator: %q", valAddress)
+			return fmt.Errorf("invalid validator address %s", valAddress)
 		}
 	}
-
 	// Check balance for delegator
 	balanceBefore, err := omg.GetBalanceDec(delegatorAddress)
 	if err != nil {
@@ -92,8 +122,8 @@ func restakeAction(out io.Writer, remainder string, keyring string, auto bool, a
 	if err != nil {
 		return err
 	}
-	if r.Total[0].Denom != cfg.Denom {
-		return fmt.Errorf("expected total denom to be %q, got %q", cfg.Denom, r.Total[0].Denom)
+	if r.Total[0].Denom != cfg.BaseDenom {
+		return fmt.Errorf("expected total denom to be %q, got %q", cfg.BaseDenom, r.Total[0].Denom)
 	}
 	rewards, err := omg.StrToDec(r.Total[0].Amount)
 	if err != nil {
@@ -122,14 +152,41 @@ func restakeAction(out io.Writer, remainder string, keyring string, auto bool, a
 	if auto && balance == balanceBefore {
 		return fmt.Errorf("balance not increased. Aborting auto-restake")
 	}
-	// Restake amount leaving approx remainder of 1 token
-	amount := balance.Sub(remainAmt)
+	// Parse remainder
+	remainAmt, remainDenom, err = omg.StrSplitAmountDenomDec(remainder)
+	if err != nil {
+		return err
+	}
+	if remainDenom == cfg.Token {
+		remainAmt, _ = omg.ConvertDecDenom(remainAmt, remainDenom)
+	}
+	if len(args) < 3 {
+		// Restake full balance less remainder if no amount specified
+		amount = balance.Sub(remainAmt)
+		expectedBalance = remainAmt
+	} else {
+		// Parse delegation amount
+		amount, denom, err = omg.StrSplitAmountDenomDec(args[2])
+		if err != nil {
+			return err
+		}
+		// Convert to baseDenom if denominated in Token
+		if denom == cfg.Token {
+			amount, denom = omg.ConvertDecDenom(amount, denom)
+		}
+		expectedBalance = balance.Sub(amount)
+	}
 	fmt.Fprintln(out, "----")
-	fmt.Fprintf(out, "Delegating to     : %s\n", valAddress)
-	fmt.Fprintf(out, "Available balance : %s%s\n", omg.PrettifyDenom(balance), cfg.Denom)
-	fmt.Fprintf(out, "Delegation amount : %s%s\n", omg.PrettifyDenom(amount), cfg.Denom)
-	fmt.Fprintf(out, "Remander amount   : %s%s\n", omg.PrettifyDenom(remainAmt), cfg.Denom)
+	fmt.Fprintf(out, "Delegate to Validator : %s\n", valAddress)
+	fmt.Fprintf(out, "Available balance     : %s%s\n", omg.PrettifyDenom(balance), cfg.BaseDenom)
+	fmt.Fprintf(out, "Delegation amount     : %s%s\n", omg.PrettifyDenom(amount), cfg.BaseDenom)
+	fmt.Fprintf(out, "Remainder amount      : %s%s\n", omg.PrettifyDenom(remainAmt), cfg.BaseDenom)
+	if amount.GreaterThan(balance.Sub(remainAmt)) {
+		return fmt.Errorf("insufficient balance after deducting remainder: %s %s", amount.String(), denom)
+	}
+	fmt.Fprintf(out, "Expected after Tx     : %s%s\n", omg.PrettifyDenom(expectedBalance), cfg.BaseDenom)
 	fmt.Fprintln(out, "----")
+
 	omg.TxDelegateToValidator(delegator, valAddress, amount, keyring, auto)
 	return nil
 }

@@ -19,6 +19,13 @@ var importCmd = &cobra.Command{
 	Use:     "import",
 	Short:   "Import addresses from keyring",
 	Long:    `Import addresses from keyring`,
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) != 0 {
+			cmd.Help()
+			os.Exit(0)
+		}
+		return nil
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		keyring, err := cmd.Flags().GetString("keyring")
 		if err != nil {
