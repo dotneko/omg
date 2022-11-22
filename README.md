@@ -125,7 +125,6 @@ To automate transactions, specify `--auto` or `-a`. When this flag is used, tran
 #### Delegate
 
 To delegate 100,000,000,000anom from *user1* to *validator1*
-(If no amount specified, user will be prompted for the amount)
 
 ```
 omg tx delegate user1 validator1 100000000000anom
@@ -162,7 +161,6 @@ omg tx restake user1 validator1 --auto -r 1000000anom
 #### Send
 
 Send tokens between accounts in the address book
-(If no amount specified, user will be prompted for the amount)
 
 ```
 omg tx send user1 user2 1000000anom
