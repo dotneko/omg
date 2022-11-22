@@ -130,6 +130,12 @@ To delegate 100,000,000,000anom from *user1* to *validator1*
 omg tx delegate user1 validator1 100000000000anom
 ```
 
+Underscored '000s separators are supported for the amount
+
+```
+omg tx delegate user1 validator1 100_000_000_000anom
+```
+
 To delegate the full avaiable balance leaving a remainder, use the `--full` or `-f` flag
 
 ```
@@ -191,5 +197,6 @@ omg convert 1nom // Returns 1000000000000000000anom
 ```
 Convert base denom amount to token amount
 ```
-omg convert 1000000000000000000anom // Returns 1nom
+omg convert 1000000000000000000anom   // Returns 1nom
+omg convert 1_000_000_000_000_000_000anom // Returns 1nom
 ```
