@@ -52,6 +52,7 @@ func ConvertDecDenom(amount decimal.Decimal, denom string) (decimal.Decimal, str
 func StrSplitAmountDenomDec(amtstr string) (decimal.Decimal, string, error) {
 	var NumericRegex = regexp.MustCompile(`[^0-9.-]+`)
 	var AlphaRegex = regexp.MustCompile(`[^a-zA-z]+`)
+	amtstr = strings.ReplaceAll(amtstr, "_", "")
 	numstr := NumericRegex.ReplaceAllString(amtstr, "")
 	amt, err := decimal.NewFromString(numstr)
 	if err != nil {
