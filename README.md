@@ -102,7 +102,11 @@ omg rewards --all
 ```
 
 > N.B. Amounts displayed use the underscore `_` separator for easier reading. For amounts with a long string of digits after the decimal point (commonly when checking rewards), the digits will be truncated and shown as `._`
-> Raw amounts can be displayed by the `--raw` or `-r` flag.
+
+Raw amounts can be displayed by the `--raw` or `-r` flag.
+```
+omg balances -a -raw
+```
 ### Transactions
 
 Transactions functions are listed under `tx` command:
