@@ -1,13 +1,19 @@
-alias_length: 3
-omg_filename: '.omg.json'
-daemon: 'onomyd'
-chain_id: 'onomy-testnet-1'
-address_prefix: 'onomy'
-valoper_prefix: 'onomyvaloper'
-base_denom: 'anom'
-token: 'nom'
-decimals: 18
-default_fee: "1212anom"
-gas_adjust: 1.2
-keyring_backend: 'test'
-remainder: '1000000000000anom'
+app:
+  omg_path: '$HOME'
+  omg_filename: '.omg.json'
+  alias_length: 3
+
+chain:
+  daemon: 'onomyd'
+  chain_id: 'onomy-testnet-1'
+  address_prefix: 'onomy'
+  valoper_prefix: 'onomyvaloper'
+  base_denom: 'anom'
+  token: 'nom'
+  decimals: 18
+
+options:
+  default_fee: '1212anom'
+  gas_adjust: 1.2
+  keyring_backend: 'test'
+  remainder: '1000000000000anom'

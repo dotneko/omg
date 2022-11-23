@@ -73,7 +73,7 @@ func modifyAction(out io.Writer, address string, args []string) error {
 	l := &omg.Accounts{}
 
 	// Read from saved address book
-	if err := l.Load(cfg.OmgFilename); err != nil {
+	if err := l.Load(cfg.OmgFilepath); err != nil {
 		return err
 	}
 	if len(*l) == 0 {
@@ -88,7 +88,7 @@ func modifyAction(out io.Writer, address string, args []string) error {
 	if err != nil {
 		return err
 	}
-	err = l.Save(cfg.OmgFilename)
+	err = l.Save(cfg.OmgFilepath)
 	if err != nil {
 		return err
 	}

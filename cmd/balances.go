@@ -58,7 +58,7 @@ func init() {
 
 func balancesAction(out io.Writer, allAccounts bool, detail bool, raw bool, args []string) error {
 	l := &omg.Accounts{}
-	if err := l.Load(cfg.OmgFilename); err != nil {
+	if err := l.Load(cfg.OmgFilepath); err != nil {
 		return err
 	}
 	if allAccounts {

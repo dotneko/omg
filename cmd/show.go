@@ -61,7 +61,7 @@ func init() {
 func showAction(out io.Writer, filterAccount string, addressOnly bool, args []string) error {
 	l := &omg.Accounts{}
 
-	if err := l.Load(cfg.OmgFilename); err != nil {
+	if err := l.Load(cfg.OmgFilepath); err != nil {
 		return err
 	}
 	if len(*l) == 0 {

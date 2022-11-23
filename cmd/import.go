@@ -43,7 +43,7 @@ func init() {
 
 func importAction(out io.Writer, keyring string, args []string) error {
 	l := &omg.Accounts{}
-	if err := l.Load(cfg.OmgFilename); err != nil {
+	if err := l.Load(cfg.OmgFilepath); err != nil {
 		return err
 	}
 	num, err := omg.ImportFromKeyring(l, keyring)
@@ -52,7 +52,7 @@ func importAction(out io.Writer, keyring string, args []string) error {
 	}
 	if num > 0 {
 		// Save the new list
-		if err := l.Save(cfg.OmgFilename); err != nil {
+		if err := l.Save(cfg.OmgFilepath); err != nil {
 			return err
 		}
 	}

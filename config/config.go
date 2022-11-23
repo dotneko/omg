@@ -3,29 +3,37 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	MinAliasLength int     `mapstructure:"alias_length"`
-	OmgFilename    string  `mapstructure:"omg_filename"`
-	Daemon         string  `mapstructure:"daemon"`
-	ChainId        string  `mapstructure:"chain_id"`
-	AddressPrefix  string  `mapstructure:"address_prefix"`
-	ValoperPrefix  string  `mapstructure:"valoper_prefix"`
-	BaseDenom      string  `mapstructure:"base_denom"`
-	Token          string  `mapstructure:"token"`
-	Decimals       int32   `mapstructure:"decimals"`
-	DefaultFee     string  `mapstructure:"default_fee"`
-	GasAdjust      float32 `mapstructure:"gas_adjust"`
-	KeyringBackend string  `mapstructure:"keyring_backend"`
-	Remainder      string  `mapstructure:"remainder"`
+	App struct {
+		OmgPath        string `mapstructure:"omg_path"`
+		OmgFilename    string `mapstructure:"omg_filename"`
+		MinAliasLength int    `mapstructure:"alias_length"`
+	}
+	Chain struct {
+		Daemon        string `mapstructure:"daemon"`
+		ChainId       string `mapstructure:"chain_id"`
+		AddressPrefix string `mapstructure:"address_prefix"`
+		ValoperPrefix string `mapstructure:"valoper_prefix"`
+		BaseDenom     string `mapstructure:"base_denom"`
+		Token         string `mapstructure:"token"`
+		Decimals      int32  `mapstructure:"decimals"`
+	}
+	Options struct {
+		DefaultFee     string  `mapstructure:"default_fee"`
+		GasAdjust      float32 `mapstructure:"gas_adjust"`
+		KeyringBackend string  `mapstructure:"keyring_backend"`
+		Remainder      string  `mapstructure:"remainder"`
+	}
 }
 
 var (
+	OmgFilepath    string
 	MinAliasLength int
-	OmgFilename    string
 	Daemon         string
 	ChainId        string
 	AddressPrefix  string
@@ -71,19 +79,31 @@ func ParseConfig(pathstr string) error {
 		return fmt.Errorf(err.Error())
 	}
 
-	MinAliasLength = cfg.MinAliasLength
-	OmgFilename = cfg.OmgFilename
-	Daemon = cfg.Daemon
-	ChainId = cfg.ChainId
-	AddressPrefix = cfg.AddressPrefix
-	ValoperPrefix = cfg.ValoperPrefix
-	BaseDenom = cfg.BaseDenom
-	Token = cfg.Token
-	Decimals = cfg.Decimals
-	DefaultFee = cfg.DefaultFee
-	GasAdjust = cfg.GasAdjust
-	KeyringBackend = cfg.KeyringBackend
-	Remainder = cfg.Remainder
+	omgDir := cfg.App.OmgPath
+	if omgDir == "$HOME" {
+		omgDir = home
+	} else {
+		dir, err := os.Stat(omgDir)
+		if err != nil {
+			return fmt.Errorf("path not found: %s", omgDir)
+		}
+		if !dir.IsDir() {
+			return fmt.Errorf("%q is not a directory", dir.Name())
+		}
+	}
+	OmgFilepath = filepath.Join(omgDir, cfg.App.OmgFilename)
+	MinAliasLength = cfg.App.MinAliasLength
+	Daemon = cfg.Chain.Daemon
+	ChainId = cfg.Chain.ChainId
+	AddressPrefix = cfg.Chain.AddressPrefix
+	ValoperPrefix = cfg.Chain.ValoperPrefix
+	BaseDenom = cfg.Chain.BaseDenom
+	Token = cfg.Chain.Token
+	Decimals = cfg.Chain.Decimals
+	DefaultFee = cfg.Options.DefaultFee
+	GasAdjust = cfg.Options.GasAdjust
+	KeyringBackend = cfg.Options.KeyringBackend
+	Remainder = cfg.Options.Remainder
 
 	return nil
 }

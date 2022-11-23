@@ -80,7 +80,7 @@ func delegateAction(out io.Writer, keyring string, auto bool, all bool, remainde
 	)
 
 	l := &omg.Accounts{}
-	if err := l.Load(cfg.OmgFilename); err != nil {
+	if err := l.Load(cfg.OmgFilepath); err != nil {
 		return err
 	}
 	// Check if delegator in list and is not validator account

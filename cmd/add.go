@@ -69,7 +69,7 @@ func addAction(out io.Writer, args []string) error {
 	l := &omg.Accounts{}
 
 	// Read from saved address book
-	if err := l.Load(cfg.OmgFilename); err != nil {
+	if err := l.Load(cfg.OmgFilepath); err != nil {
 		return err
 	}
 	alias := args[0]
@@ -80,7 +80,7 @@ func addAction(out io.Writer, args []string) error {
 		return err
 	}
 	// Save the new list
-	if err := l.Save(cfg.OmgFilename); err != nil {
+	if err := l.Save(cfg.OmgFilepath); err != nil {
 		return err
 	}
 	fmt.Fprintf(out, "Added ==> %s [%s]\n", alias, address)

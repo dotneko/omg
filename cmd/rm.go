@@ -60,7 +60,7 @@ func init() {
 func rmAction(in io.Reader, out io.Writer, force bool, args []string) error {
 	l := &omg.Accounts{}
 
-	if err := l.Load(cfg.OmgFilename); err != nil {
+	if err := l.Load(cfg.OmgFilepath); err != nil {
 		return err
 	}
 
@@ -78,7 +78,7 @@ func rmAction(in io.Reader, out io.Writer, force bool, args []string) error {
 	}
 	if confirm == "" || confirm == "y" {
 		l.DeleteIndex(idx)
-		if err := l.Save(cfg.OmgFilename); err != nil {
+		if err := l.Save(cfg.OmgFilepath); err != nil {
 			return err
 		}
 		fmt.Fprintf(out, "Deleted: %q [%s]\n", args[0], address)

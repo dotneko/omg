@@ -51,7 +51,7 @@ func init() {
 func wdrewardsAction(out io.Writer, keyring string, auto bool, args []string) error {
 
 	l := &omg.Accounts{}
-	if err := l.Load(cfg.OmgFilename); err != nil {
+	if err := l.Load(cfg.OmgFilepath); err != nil {
 		return err
 	}
 	address := l.GetAddress(args[0])

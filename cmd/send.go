@@ -64,7 +64,7 @@ func sendAction(out io.Writer, auto bool, keyring string, args []string) error {
 	)
 	l := &omg.Accounts{}
 
-	if err := l.Load(cfg.OmgFilename); err != nil {
+	if err := l.Load(cfg.OmgFilepath); err != nil {
 		return err
 	}
 	// Parse and validate [from]

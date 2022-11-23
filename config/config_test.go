@@ -12,7 +12,7 @@ func TestParseConfig(t *testing.T) {
 		t.Error(err)
 	}
 
-	require.NotEmpty(t, OmgFilename, "OmgFilename should not be empty")
+	require.NotEmpty(t, OmgFilepath, "OmgFilename should not be empty")
 	require.NotEmpty(t, MinAliasLength, "MinAliasLength should not be empty")
 	require.NotEmpty(t, Daemon, "Daemon should not be empty")
 	require.NotEmpty(t, ChainId, "ChainId should not be empty")
