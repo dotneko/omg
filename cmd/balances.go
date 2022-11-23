@@ -35,11 +35,15 @@ var balancesCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		detail, err := cmd.Flags().GetBool("detail")
+		if err != nil {
+			return err
+		}
 		raw, err := cmd.Flags().GetBool("raw")
 		if err != nil {
 			return err
 		}
-		return balancesAction(os.Stdout, allAccounts, raw, args)
+		return balancesAction(os.Stdout, allAccounts, detail, raw, args)
 	},
 }
 
@@ -47,13 +51,13 @@ func init() {
 	rootCmd.AddCommand(balancesCmd)
 
 	balancesCmd.Flags().BoolP("all", "a", false, "Check all accounts in address book")
+	balancesCmd.Flags().BoolP("detail", "d", false, "Detailed output")
 	balancesCmd.Flags().BoolP("raw", "r", false, "Raw output")
 
 }
 
-func balancesAction(out io.Writer, allAccounts bool, raw bool, args []string) error {
+func balancesAction(out io.Writer, allAccounts bool, detail bool, raw bool, args []string) error {
 	l := &omg.Accounts{}
-
 	if err := l.Load(cfg.OmgFilename); err != nil {
 		return err
 	}
@@ -67,8 +71,10 @@ func balancesAction(out io.Writer, allAccounts bool, raw bool, args []string) er
 				}
 				if raw {
 					fmt.Fprintf(out, "%10s %s%s\n", acc.Address, balance.String(), cfg.BaseDenom)
-				} else {
+				} else if detail {
 					fmt.Fprintf(out, "%10s [%s]: %30s %s (%s %s)\n", acc.Alias, acc.Address, omg.PrettifyDenom(balance), cfg.BaseDenom, omg.DenomToTokenDec(balance).String(), cfg.Token)
+				} else {
+					fmt.Fprintf(out, "%10s : %30s %s (%s %s)\n", acc.Alias, omg.PrettifyDenom(balance), cfg.BaseDenom, omg.DenomToTokenDec(balance).String(), cfg.Token)
 				}
 			}
 		}
@@ -82,7 +88,11 @@ func balancesAction(out io.Writer, allAccounts bool, raw bool, args []string) er
 		header = ""
 	} else {
 		address = l.GetAddress(args[0])
-		header = fmt.Sprintf("%10s [%s]: ", args[0], address)
+		if detail {
+			header = fmt.Sprintf("%10s [%s]: ", args[0], address)
+		} else {
+			header = fmt.Sprintf("%10s : ", args[0])
+		}
 	}
 	if address == "" {
 		return fmt.Errorf("account %q not found", args[0])
@@ -94,7 +104,7 @@ func balancesAction(out io.Writer, allAccounts bool, raw bool, args []string) er
 	if raw {
 		fmt.Fprintf(out, "%s%s", balance.String(), cfg.BaseDenom)
 	} else {
-		fmt.Fprintf(out, header+"%s %s (%s %s)\n", balance.String(), cfg.BaseDenom, omg.DenomToTokenDec(balance).String(), cfg.Token)
+		fmt.Fprintf(out, header+"%s %s (%s %s)\n", omg.PrettifyDenom(balance), cfg.BaseDenom, omg.DenomToTokenDec(balance).String(), cfg.Token)
 	}
 	return nil
 }

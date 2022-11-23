@@ -81,7 +81,12 @@ func showAction(out io.Writer, filterAccount string, addressOnly bool, args []st
 		if address == "" {
 			return fmt.Errorf("no address found for %s", args[0])
 		}
-		fmt.Fprint(out, address)
+		if addressOnly {
+			fmt.Fprintf(out, "%s ", address)
+		} else {
+			fmt.Fprintf(out, "%s\n", address)
+		}
+
 	}
 	return nil
 }
