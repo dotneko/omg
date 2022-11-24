@@ -82,7 +82,6 @@ func rewardsAction(out io.Writer, allAccounts bool, raw bool, args []string) err
 						}
 					}
 				}
-				fmt.Fprintln(out)
 			}
 		}
 		return nil
