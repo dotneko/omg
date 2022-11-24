@@ -21,6 +21,7 @@ const (
 	bech32len  int = 39
 	AccNormal      = "normal"
 	AccValoper     = "valoper"
+	AccAll         = "all"
 )
 
 // Checks if address is a validator account
@@ -52,15 +53,15 @@ func IsValidAddress(address string) bool {
 // Lists accounts
 func (l *Accounts) String() string {
 	formatted := ""
-	for k, a := range *l {
-		formatted += fmt.Sprintf("%2d: %15s [%s]\n", k, a.Alias, a.Address)
+	for _, a := range *l {
+		formatted += fmt.Sprintf("%15s [%s]\n", a.Alias, a.Address)
 	}
 	return formatted
 }
 
 func (l *Accounts) ListFiltered(accountType string, addressOnly bool) string {
 	formatted := ""
-	for k, a := range *l {
+	for _, a := range *l {
 		include := true
 		if accountType == AccNormal {
 			include = IsNormalAddress(a.Address)
@@ -71,7 +72,7 @@ func (l *Accounts) ListFiltered(accountType string, addressOnly bool) string {
 			if addressOnly {
 				formatted += a.Address + "\n"
 			} else {
-				formatted += fmt.Sprintf("%2d: %15s [%s]\n", k, a.Alias, a.Address)
+				formatted += fmt.Sprintf("%15s [%s]\n", a.Alias, a.Address)
 			}
 		}
 	}

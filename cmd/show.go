@@ -70,7 +70,8 @@ func showAction(out io.Writer, filterAccount string, addressOnly bool, args []st
 	// List all addresses as default
 	if len(args) == 0 {
 		if filterAccount == "" && !addressOnly {
-			fmt.Fprint(out, l)
+			fmt.Fprint(out, l.ListFiltered(omg.AccNormal, false))
+			fmt.Fprint(out, l.ListFiltered(omg.AccValoper, false))
 			return nil
 		}
 		fmt.Fprint(out, l.ListFiltered(filterAccount, addressOnly))
