@@ -1,6 +1,6 @@
 app:
-  omg_path: '$HOME'
-  omg_filename: '.omg.json'
+  addrbook_path: '$HOME'
+  addrbook_filename: '.omg.json'
   alias_length: 3
 
 chain:

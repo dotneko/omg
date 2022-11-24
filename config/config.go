@@ -10,8 +10,8 @@ import (
 
 type Config struct {
 	App struct {
-		OmgPath        string `mapstructure:"omg_path"`
-		OmgFilename    string `mapstructure:"omg_filename"`
+		OmgPath        string `mapstructure:"addrbook_path"`
+		OmgFilename    string `mapstructure:"addrbook_filename"`
 		MinAliasLength int    `mapstructure:"alias_length"`
 	}
 	Chain struct {
