@@ -197,6 +197,38 @@ func GetKeyringAccounts(keyring string) (Accounts, error) {
 	return accounts, nil
 }
 
+// Query Validators
+func GetValidatorsQuery() (*types.ValidatorsQuery, error) {
+	cmdStr := fmt.Sprintf("query staking validators %s", jsonFlag)
+	out, err := exec.Command(cfg.Daemon, strings.Split(cmdStr, " ")...).Output()
+	if err != nil {
+		return nil, err
+	}
+	if !json.Valid(out) {
+		return nil, errors.New("invalid json")
+	}
+	var v types.ValidatorsQuery
+	if err = json.Unmarshal(out, &v); err != nil {
+		return nil, err
+	}
+
+	return &v, nil
+}
+
+// Search Validators by Moniker
+func GetValidatorAddress(moniker string) (string, string) {
+	searchMoniker := strings.ToLower(moniker)
+
+	vQ, _ := GetValidatorsQuery()
+
+	for _, val := range vQ.Validators {
+		if !val.Jailed && searchMoniker == strings.ToLower(val.Description.Moniker) {
+			return val.Description.Moniker, val.OperatorAddress
+		}
+	}
+	return "", ""
+}
+
 // Parse rewards
 func GetRewards(address string) (*types.RewardsQuery, error) {
 

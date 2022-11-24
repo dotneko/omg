@@ -81,6 +81,25 @@ Get address for *user1*
 ```
 omg addr show user1
 ```
+### Validators
+
+A list of active validators and their addresses on the chain can be queried using the `validator query` command:
+
+```
+omg validator query
+```
+
+A validator can be added to the address book by using the `validator import [moniker]` command:
+
+```
+omg validator import nomblocks.io
+```
+
+An alias can be assigned instead of the moniker as the address book name using the `--name` or `-n` flag:
+
+```
+omg validator import nomblocks.io -n validator1
+```
 
 ### Queries
 
@@ -142,16 +161,19 @@ Underscored '000s separators are supported for the amount
 omg tx delegate user1 validator1 100_000_000_000anom
 ```
 
-To delegate the full avaiable balance leaving a remainder, use the `--full` or `-f` flag
+To delegate the full avaiable balance leaving a remainder, use the `--full` or `-f` flag. The default remainder is configured in the configuration file.
 
 ```
 omg tx delegate user1 validator1 --full
 ```
 
-To adjust the remainder amount, user the `--remainder [amount]` or `-r [amount]` flag
+To adjust the remainder amount, add the `--remainder [amount]` or `-r [amount]` flag denominated in the base denom.
+
 ```
 omg tx delegate user1 validator1 --full -r 1000anom
 ```
+
+> N.B. The final balance is likely to differ from the remainder set due to *auto claim rewards* being triggered by the delegation transaction.
 
 #### Restake
 
