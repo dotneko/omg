@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	omg "github.com/dotneko/omg/app"
@@ -19,16 +20,12 @@ import (
 // restakeCmd represents the restake command
 var restakeCmd = &cobra.Command{
 	Aliases: []string{"r"},
-	Use:     "restake [name] [validator|valoper-address] *OPTIONAL:[amount][denom]",
+	Use:     "restake [name] [validator|moniker|valoper-address] *OPTIONAL:[amount][denom]",
 	Short:   "Withdraw rewards and restake to validator",
 	Long: fmt.Sprintf(`Withdraw all rewards for account, then re-delegate to validator.
 
-A remainder specified by the '--remainder' or ='-f' flag will be deducted from the 
-updated balance after rewards withdrawn, and is effective even if a delegation amount
-is specified.
-
-If a delegation amount is specified, the final balance after delegation must exceed the
-remainder or the transaction will abort. Therefore:
+A remainder specified by the '--remainder' or ='-r' flag specifies the minimum estimated
+remaining balance that must be left after delegation or the transaction will abort. Therefore:
 
 	[amount] must be >= [balance after withdraw rewards] - [remainder]
 
@@ -87,6 +84,7 @@ func restakeAction(out io.Writer, remainder string, keyring string, auto bool, a
 	var (
 		delegatorAddress string
 		valAddress       string
+		valoperMoniker   string
 		amount           decimal.Decimal
 		balanceBefore    decimal.Decimal
 		denom            string = cfg.BaseDenom
@@ -105,13 +103,21 @@ func restakeAction(out io.Writer, remainder string, keyring string, auto bool, a
 	if !omg.IsNormalAddress(delegatorAddress) {
 		return fmt.Errorf("invalid delegator address for %s", delegator)
 	}
-	// Check if valid validator or validator address
+
+	// Check if valid validator or validator address or moniker
 	if omg.IsValidatorAddress(validator) {
 		valAddress = validator
 	} else {
 		valAddress = l.GetAddress(validator)
 		if !omg.IsValidatorAddress(valAddress) {
-			return fmt.Errorf("invalid validator address %s", valAddress)
+			// Query chain for address matching moniker if not found in address book
+			searchMoniker := strings.ToLower(validator)
+			valoperMoniker, valAddress = omg.GetValidatorAddress(searchMoniker)
+			if valoperMoniker == "" {
+				return fmt.Errorf("no validator matching %s found", validator)
+			} else {
+				fmt.Fprintf(out, "Found active validator %s [%s]\n----\n", valoperMoniker, valAddress)
+			}
 		}
 	}
 	// Check balance for delegator
@@ -182,11 +188,11 @@ func restakeAction(out io.Writer, remainder string, keyring string, auto bool, a
 	fmt.Fprintf(out, "Delegate to Validator : %s\n", valAddress)
 	fmt.Fprintf(out, "Available balance     : %s%s\n", omg.PrettifyDenom(balance), cfg.BaseDenom)
 	fmt.Fprintf(out, "Delegation amount     : %s%s\n", omg.PrettifyDenom(amount), cfg.BaseDenom)
-	fmt.Fprintf(out, "Remainder amount      : %s%s\n", omg.PrettifyDenom(remainAmt), cfg.BaseDenom)
+	fmt.Fprintf(out, "Min remainder setting : %s%s\n", omg.PrettifyDenom(remainAmt), cfg.BaseDenom)
 	if amount.GreaterThan(balance.Sub(remainAmt)) {
-		return fmt.Errorf("insufficient balance after deducting remainder: %s %s", amount.String(), denom)
+		return fmt.Errorf("insufficient balance after deducting remainder: %s %s", omg.PrettifyDenom(expectedBalance), denom)
 	}
-	fmt.Fprintf(out, "Expected after Tx     : %s%s\n", omg.PrettifyDenom(expectedBalance), cfg.BaseDenom)
+	fmt.Fprintf(out, "Est minimum remaining : %s%s\n", omg.PrettifyDenom(expectedBalance), cfg.BaseDenom)
 	fmt.Fprintln(out, "----")
 
 	omg.TxDelegateToValidator(delegator, valAddress, amount, keyring, auto)

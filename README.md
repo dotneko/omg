@@ -17,6 +17,7 @@ A command line tool for common user/validator interactions with the [Onomy Proto
 
 * Go v1.18+
 * Locally running Onomy full node (see [Onomy Docs](https://docs.onomy.io/run-a-full-node/starting-a-full-node))
+* User-owned keys already stored in the onomy keyring
 
 ## Installation
 
@@ -117,6 +118,9 @@ The `--all` or `-a` flag can be used to query all accounts in the address book.
 
 ```
 omg balances -a
+```
+
+```
 omg rewards --all
 ```
 
@@ -139,11 +143,13 @@ Transactions functions are listed under `tx` command:
 
 All transactions assume that the account `name` in the address book matches the name of the user's key in the keyring, and will fail if the onomyd cannot find the key in the keyring.
 
+For **delegate** and **restake** commands, one can specify the `name` of an existing validator in the address book, or if no matching validator could be found in the address book, omg will search for a matching `moniker` for the active validator registered on the blockchain. 
+
 By default, transactions will be generated and wait for user confirmation.
 
 The default keyring-backend is `test`, but can be modified using the flag `--keyring`. For example, to use the `pass` keyring-backend, specify `--keyring pass` when executing your command.
 
-To automate transactions, specify `--auto` or `-a`. When this flag is used, transaction prompts are automatically confirmed, therefore be sure that the transaction is what you want to execute. Note that this is only confirmed to work for the default keyring-backend `test`.
+To automate transactions, specify `--auto` or `-a`. When this flag is used, transaction prompts are automatically confirmed, therefore *be sure that the transaction is what you want to execute*. Note that this is only confirmed to work for the default keyring-backend `test`.
 
 > N.B. **omg is a wrapper for the onomyd daemon and *DOES NOT* have access to the user's private keys/mnemonic**
 
@@ -223,8 +229,12 @@ Convert token amount to base denom amount
 ```
 omg convert 1nom // Returns 1000000000000000000anom
 ```
+
 Convert base denom amount to token amount
 ```
 omg convert 1000000000000000000anom   // Returns 1nom
+```
+
+```
 omg convert 1_000_000_000_000_000_000anom // Returns 1nom
 ```
