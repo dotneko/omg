@@ -71,11 +71,15 @@ func sendAction(out io.Writer, auto bool, keyring string, args []string) error {
 	from = args[0]
 	fromAddress = l.GetAddress(from)
 	if fromAddress == "" {
-		return fmt.Errorf("no account found")
+		return fmt.Errorf("account %q not found", from)
 	}
 	if !omg.IsNormalAddress(fromAddress) {
 		return fmt.Errorf("invalid from account: %s", fromAddress)
 	}
+	if fromAddress != "" && fromAddress != omg.QueryKeyringAddress(from, keyring) {
+		return fmt.Errorf("delegator/address not in keyring")
+	}
+
 	// Parse and validate [to]
 	if omg.IsNormalAddress(args[1]) {
 		to = args[1]

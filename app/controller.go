@@ -198,6 +198,27 @@ func GetKeyringAccounts(keyring string) (Accounts, error) {
 	return accounts, nil
 }
 
+// Query Keyring for address
+func QueryKeyringAddress(name, keyring string) string {
+
+	cmdStr := fmt.Sprintf("keys show %s %s %s %s", name, jsonFlag, keyringFlag, keyring)
+	out, err := exec.Command(cfg.Daemon, strings.Split(cmdStr, " ")...).CombinedOutput()
+	if err != nil {
+		return ""
+	}
+	if strings.Contains(string(out), "Error") {
+		return ""
+	}
+	if !json.Valid(out) {
+		return ""
+	}
+	var k types.KeyStruct
+	if err = json.Unmarshal(out, &k); err != nil {
+		return ""
+	}
+	return k.Address
+}
+
 // Query Validators
 func GetValidatorsQuery() (*types.ValidatorsQuery, error) {
 	cmdStr := fmt.Sprintf("query staking validators %s", jsonFlag)

@@ -99,9 +99,14 @@ func restakeAction(out io.Writer, remainder string, keyring string, auto bool, a
 	}
 	// Check if delegator in list and is not validator account
 	delegatorAddress = l.GetAddress(delegator)
-
+	if delegatorAddress == "" {
+		return fmt.Errorf("account %q not found", delegator)
+	}
 	if !omg.IsNormalAddress(delegatorAddress) {
 		return fmt.Errorf("invalid delegator address for %s", delegator)
+	}
+	if delegatorAddress != omg.QueryKeyringAddress(delegator, keyring) {
+		return fmt.Errorf("delegator/address not in keyring")
 	}
 
 	// Check if valid validator or validator address or moniker

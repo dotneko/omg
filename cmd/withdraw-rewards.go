@@ -50,18 +50,22 @@ func init() {
 
 func wdrewardsAction(out io.Writer, keyring string, auto bool, args []string) error {
 
+	delegator := args[0]
 	l := &omg.Accounts{}
 	if err := l.Load(cfg.OmgFilepath); err != nil {
 		return err
 	}
-	address := l.GetAddress(args[0])
-	if address == "" {
-		return fmt.Errorf("account %q not found", args[0])
+	delegatorAddress := l.GetAddress(delegator)
+	if delegatorAddress == "" {
+		return fmt.Errorf("account %q not found", delegator)
 	}
-	if !omg.IsNormalAddress(address) {
-		return fmt.Errorf("%s is not a normal account", args[0])
+	if !omg.IsNormalAddress(delegatorAddress) {
+		return fmt.Errorf("%s is not a valid account", delegator)
 	}
-	err := omg.TxWithdrawRewards(out, args[0], keyring, auto)
+	if delegatorAddress != "" && delegatorAddress != omg.QueryKeyringAddress(delegator, keyring) {
+		return fmt.Errorf("delegator/address not in keyring")
+	}
+	err := omg.TxWithdrawRewards(out, delegator, keyring, auto)
 	if err != nil {
 		return err
 	}
