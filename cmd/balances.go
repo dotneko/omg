@@ -63,6 +63,7 @@ func balancesAction(out io.Writer, allAccounts bool, detail bool, raw bool, args
 	}
 	if allAccounts {
 		for _, acc := range *l {
+			fmt.Println(acc.Alias, acc.Address)
 			if omg.IsNormalAddress(acc.Address) {
 				balance, err := omg.GetBalanceDec(acc.Address)
 				if err != nil {
