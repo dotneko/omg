@@ -150,6 +150,9 @@ func GetBalancesQuery(address string) (*types.BalancesQuery, error) {
 func GetBalanceDec(address string) (decimal.Decimal, error) {
 
 	bQ, err := GetBalancesQuery(address)
+	if len(bQ.Balances) == 0 {
+		return decimal.NewFromInt(-1), fmt.Errorf("no balances found")
+	}
 	if err != nil {
 		return decimal.NewFromInt(-1), err
 	}
