@@ -78,7 +78,7 @@ func rewardsAction(out io.Writer, allAccounts bool, raw bool, args []string) err
 						if raw {
 							fmt.Fprintf(out, "%s\n%s%s\n", v.ValidatorAddress, v.Reward[0].Amount, v.Reward[0].Denom)
 						} else {
-							fmt.Fprintf(out, "> %s: %25s %s (%s %s)\n", omg.ShortAddress(v.ValidatorAddress), omg.PrettifyDenom(amt), cfg.BaseDenom, omg.DenomToTokenDec(amt).String(), cfg.Token)
+							fmt.Fprintf(out, "> %s: %25s %s (%s %s)\n", omg.ShortAddress(v.ValidatorAddress), omg.PrettifyDenom(amt), cfg.BaseDenom, omg.DenomToTokenDec(amt).StringFixed(4), cfg.Token)
 						}
 					}
 				}
