@@ -50,6 +50,19 @@ func IsValidAddress(address string) bool {
 	return true
 }
 
+func ShortAddress(address string) string {
+	var offset int
+	const chars = 4
+	if IsNormalAddress(address) {
+		offset = len(cfg.AddressPrefix)
+	} else if IsValidatorAddress(address) {
+		offset = len(cfg.ValoperPrefix)
+	} else {
+		return address
+	}
+	return address[:offset+5] + ".." + address[len(address)-chars:]
+}
+
 // Lists accounts
 func (l *Accounts) String() string {
 	formatted := ""
