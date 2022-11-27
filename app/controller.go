@@ -318,7 +318,7 @@ func TxSend(fromAddress string, toAddress string, amount decimal.Decimal, keyrin
 
 	cmdStr := fmt.Sprintf("tx bank send %s %s %s", fromAddress, toAddress, DenomToStr(amount))
 	//cmdStr += fmt.Sprintf(" --fees %d%s --gas auto --gas-adjustment %f", defaultFee, denom, gasAdjust)
-	cmdStr += fmt.Sprintf(" --fees %s--gas auto --gas-adjustment %f", cfg.DefaultFee, cfg.GasAdjust)
+	cmdStr += fmt.Sprintf(" --fees %s --gas auto --gas-adjustment %f", cfg.DefaultFee, cfg.GasAdjust)
 	cmdStr += fmt.Sprintf(" --keyring-backend %s --chain-id %s", keyring, cfg.ChainId)
 
 	fmt.Printf("Executing: %s %s\n", cfg.Daemon, cmdStr)
