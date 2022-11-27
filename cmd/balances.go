@@ -61,6 +61,7 @@ func balancesAction(out io.Writer, allAccounts bool, detail bool, raw bool, args
 	if err := l.Load(cfg.OmgFilepath); err != nil {
 		return err
 	}
+	fmt.Println(l)
 	if allAccounts {
 		for _, acc := range *l {
 			fmt.Println(acc.Alias, acc.Address)
