@@ -12,7 +12,7 @@ import (
 
 // rootCmd represents the base command when called without any subcommands
 var (
-	version string = "0.3.2"
+	version string = "0.3.3"
 	rootCmd        = &cobra.Command{
 		Use:          "omg",
 		Short:        "Convenience wrapper for the Onomy Protocol",
