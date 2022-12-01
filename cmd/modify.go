@@ -47,6 +47,9 @@ Examples:
 		if err != nil {
 			return err
 		}
+		if !omg.IsNormalAddress(address) {
+			return fmt.Errorf("invalid address")
+		}
 		if len(args) == 1 && address == "" {
 			return fmt.Errorf("missing new name or address flag")
 		}

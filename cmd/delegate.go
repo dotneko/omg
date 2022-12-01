@@ -20,7 +20,7 @@ import (
 // delegateCmd represents the delegate command
 var delegateCmd = &cobra.Command{
 	Aliases: []string{"del", "d"},
-	Use:     "delegate [account] [validator|valoper-address|moniker] [amount][denom]",
+	Use:     "delegate [account] [moniker|valoper-address] [amount][denom]",
 	Short:   "Delegate tokens from account to validator",
 	Long: fmt.Sprintf(`Delegate tokens from account to validator.
 	
@@ -31,7 +31,7 @@ Therefore:
 
 	[amount] must be >= [balance after withdraw rewards] - [remainder]
 
-The remainder can be set in the configuration file, currently: %s
+The remainder can be set in the configuration file.
 
 Examples:
 
@@ -43,14 +43,14 @@ Delegate full balance (less default remainder):
 
 Delegate full balance and specify remainder:
 # omg tx delegate user1 validator1 -f -r 1000000000anom
-`, cfg.Remainder),
+`),
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
 			cmd.Help()
 			os.Exit(0)
 		}
 		if err := cobra.RangeArgs(2, 3)(cmd, args); err != nil {
-			return fmt.Errorf("expecting [account] [validator] [amount][denom] as arguments")
+			return fmt.Errorf("expecting [account] [moniker|valoper-address] [amount][denom] as arguments")
 		}
 		all, _ := cmd.Flags().GetBool("full")
 		if len(args) == 2 && !all {

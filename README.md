@@ -33,7 +33,7 @@ Change into the `omg` directory then run `go build .`
 
 Settings can be modified in `.omgconfig.yaml`
 
-Ensure `.omgconfig.yaml` in home directory or binary path
+Copy/move `.omgconfig.yaml` to home directory or `omg` binary path
 
 ## Usage
 
@@ -67,12 +67,6 @@ Addresses can be added using `add [alias] [address]`:
 omg addr add user1 onomy123456789012345678901234567890123456789
 ```
 
-Validator addresses can also be added using `add [alias] [valoper address]`:
-
-```
-omg addr add validator1 onomyvaloper123456789012345678901234567890123456789
-```
-
 Show list of addresses:
 ```
 omg addr show
@@ -88,18 +82,6 @@ A list of active validators and their addresses on the chain can be queried usin
 
 ```
 omg validator query
-```
-
-A validator can be added to the address book by using the `validator import [moniker]` command:
-
-```
-omg validator import nomblocks.io
-```
-
-An alias can be assigned instead of the moniker as the address book name using the `--name` or `-n` flag:
-
-```
-omg validator import nomblocks.io -n validator1
 ```
 
 ### Queries
@@ -143,11 +125,11 @@ Transactions functions are listed under `tx` command:
 
 All transactions assume that the account `name` in the address book matches the name of the user's key in the keyring, and will fail if the onomyd cannot find the key in the keyring.
 
-For **delegate** and **restake** commands, one can specify the `name` of an existing validator in the address book, or if no matching validator could be found in the address book, omg will search for a matching `moniker` for the active validator registered on the blockchain. 
+For **delegate** and **restake** commands, one can specify the `moniker` of an active validator on chain, or the validator *valoper* address. 
 
 By default, transactions will be generated and wait for user confirmation.
 
-The default keyring-backend is `test`, but can be modified using the flag `--keyring`. For example, to use the `pass` keyring-backend, specify `--keyring pass` when executing your command.
+The default keyring-backend is `test`, but can be modified using the flag `--keyring`. For example, to use the `pass` keyring-backend, specify `--keyring pass` when executing your command. This default could be configured in the `.omgconfig.yaml` config file.
 
 To automate transactions, specify `--auto` or `-a`. When this flag is used, transaction prompts are automatically confirmed, therefore *be sure that the transaction is what you want to execute*. Note that this is only confirmed to work for the default keyring-backend `test`.
 
@@ -155,7 +137,7 @@ To automate transactions, specify `--auto` or `-a`. When this flag is used, tran
 
 #### Delegate
 
-To delegate 100,000,000,000anom from *user1* to *validator1*
+To delegate 100,000,000,000anom from *user1* to validator with moniker "validator1"
 
 ```
 omg tx delegate user1 validator1 100000000000anom
@@ -183,8 +165,7 @@ omg tx delegate user1 validator1 --full -r 1000anom
 
 #### Restake
 
-The `restake` subcommand will withdraw all rewards for the account then delegate the full amount *less remainder*
-to the specified validator.
+The `restake` subcommand will withdraw all rewards for the account then delegate the full amount *less remainder* to the specified validator.
 ```
 omg tx restake user1 validator1
 ```

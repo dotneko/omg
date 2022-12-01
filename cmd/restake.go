@@ -20,7 +20,7 @@ import (
 // restakeCmd represents the restake command
 var restakeCmd = &cobra.Command{
 	Aliases: []string{"r"},
-	Use:     "restake [name] [validator|moniker|valoper-address] *OPTIONAL:[amount][denom]",
+	Use:     "restake [name] [moniker|valoper-address] *OPTIONAL:[amount][denom]",
 	Short:   "Withdraw rewards and restake to validator",
 	Long: fmt.Sprintf(`Withdraw all rewards for account, then re-delegate to validator.
 
@@ -48,7 +48,7 @@ Restake specified amount
 			os.Exit(0)
 		}
 		if err := cobra.RangeArgs(2, 3)(cmd, args); err != nil {
-			fmt.Printf("Error: %s\n", fmt.Errorf("expecting [account] [validator|valoper-address] as arguments"))
+			fmt.Printf("Error: %s\n", fmt.Errorf("expecting [account] [moniker|valoper-address] as arguments"))
 		}
 		return nil
 	},
