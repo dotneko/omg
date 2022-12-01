@@ -19,6 +19,10 @@ A command line tool for common user/validator interactions with the [Onomy Proto
 * Locally running Onomy full node (see [Onomy Docs](https://docs.onomy.io/run-a-full-node/starting-a-full-node))
 * User-owned keys already stored in the onomy keyring
 
+## Quickstart
+
+Quick start instructions [here](Quickstart.md)
+
 ## Installation
 
 Clone this repo
