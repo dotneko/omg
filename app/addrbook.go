@@ -67,7 +67,7 @@ func ShortAddress(address string) string {
 func (l *Accounts) String() string {
 	formatted := ""
 	for _, a := range *l {
-		formatted += fmt.Sprintf("%15s [%s]\n", a.Alias, a.Address)
+		formatted += fmt.Sprintf("%20s [ %s  ]\n", a.Alias, a.Address)
 	}
 	return formatted
 }
@@ -85,7 +85,7 @@ func (l *Accounts) ListFiltered(accountType string, addressOnly bool) string {
 			if addressOnly {
 				formatted += a.Address + "\n"
 			} else {
-				formatted += fmt.Sprintf("%15s [%s]\n", a.Alias, a.Address)
+				formatted += fmt.Sprintf("%20s [ %s ]\n", a.Alias, a.Address)
 			}
 		}
 	}

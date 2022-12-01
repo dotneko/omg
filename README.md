@@ -78,10 +78,10 @@ omg addr show user1
 ```
 ### Validators
 
-A list of active validators and their addresses on the chain can be queried using the `validator query` command:
+A list of active validators and their valoper-addresses on the chain can be queried using the `validator show` command:
 
 ```
-omg validator query
+omg validator show
 ```
 
 ### Queries

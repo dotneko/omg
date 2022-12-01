@@ -14,12 +14,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// validatorQueryCmd represents the validatorQuery command
-var validatorQueryCmd = &cobra.Command{
-	Aliases: []string{"show", "q", "s"},
-	Use:     "query",
-	Short:   "Query staking validators",
-	Long:    `Query staking validators.`,
+// validatorShowCmd represents the validatorShow command
+var validatorShowCmd = &cobra.Command{
+	Aliases: []string{"list", "s"},
+	Use:     "show",
+	Short:   "Show staking validators",
+	Long:    `Show staking validators.`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 0 {
 			cmd.Help()
@@ -28,22 +28,22 @@ var validatorQueryCmd = &cobra.Command{
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return validatorQueryAction(os.Stdout, args)
+		return validatorShowAction(os.Stdout, args)
 	},
 }
 
 func init() {
-	validatorCmd.AddCommand(validatorQueryCmd)
+	validatorCmd.AddCommand(validatorShowCmd)
 }
 
-func validatorQueryAction(out io.Writer, args []string) error {
+func validatorShowAction(out io.Writer, args []string) error {
 	vQ, err := omg.GetValidatorsQuery()
 	if err != nil {
 		return err
 	}
 	for _, val := range vQ.Validators {
 		if !val.Jailed {
-			fmt.Fprintf(out, "%20s : %s\n", val.Description.Moniker, val.OperatorAddress)
+			fmt.Fprintf(out, "%20s [ %s ]\n", val.Description.Moniker, val.OperatorAddress)
 		}
 	}
 	l := &omg.Accounts{}

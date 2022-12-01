@@ -16,7 +16,7 @@ import (
 
 // showCmd represents the show command
 var showCmd = &cobra.Command{
-	Aliases: []string{"list", "get", "s"},
+	Aliases: []string{"list", "s"},
 	Use:     "show [name]",
 	Short:   "Show one or all addresses",
 	Long:    `Show one or more addresses for a given name in the address book`,
