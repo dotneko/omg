@@ -1,5 +1,5 @@
 /*
-Copyright © 2022 NAME HERE <EMAIL ADDRESS>
+Copyright © 2022 dotneko
 
 */
 package cmd
@@ -28,18 +28,9 @@ for user-owned accounts.
 For transactions to process, the [name] is used as the parameter by the %s daemon
 to check the keyring for available user-owned accounts to generate signature for signing.
 
-The entry [address] can be a normal address or a validator/valoper address.
+The entry [address] must not be a valoper address.
 
-Examples:
-
-Adding a normal address:
-# omg address add nbuser %s12345678901234567890123456789
-
-Adding a validator/valoper address:
-# omg address add validator %s12345678901234567890123456789
-
-An input prompt would ask for the [name] and [address] if these are not specified.
-`, cfg.Daemon, cfg.AddressPrefix, cfg.ValoperPrefix),
+`, cfg.Daemon),
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
 			cmd.Help()
@@ -51,7 +42,7 @@ An input prompt would ask for the [name] and [address] if these are not specifie
 		if omg.IsValidAddress(args[0]) {
 			return fmt.Errorf("[name] cannot be an address")
 		}
-		if !omg.IsValidAddress(args[1]) {
+		if !omg.IsNormalAddress(args[1]) {
 			return fmt.Errorf("%s is not a valid address", args[1])
 		}
 		return nil
