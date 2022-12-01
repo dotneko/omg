@@ -17,4 +17,4 @@ jobs:
         goarch: amd64
         binary_name: "omg"
         ldflags: "-s -w"
-        extra_files: LICENSE README.md
+        extra_files: .omgconfig.yaml
