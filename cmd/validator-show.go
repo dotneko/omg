@@ -10,20 +10,18 @@ import (
 	"os"
 
 	omg "github.com/dotneko/omg/app"
-	cfg "github.com/dotneko/omg/config"
 	"github.com/spf13/cobra"
 )
 
 // validatorShowCmd represents the validatorShow command
 var validatorShowCmd = &cobra.Command{
 	Aliases: []string{"list", "s"},
-	Use:     "show",
+	Use:     "show **OPTIONAL:[moniker]",
 	Short:   "Show staking validators",
 	Long:    `Show staking validators.`,
 	Args: func(cmd *cobra.Command, args []string) error {
-		if len(args) != 0 {
-			cmd.Help()
-			os.Exit(0)
+		if err := cobra.RangeArgs(0, 1)(cmd, args); err != nil {
+			fmt.Printf("Error: %s\n", fmt.Errorf("too many arguments"))
 		}
 		return nil
 	},
@@ -37,6 +35,13 @@ func init() {
 }
 
 func validatorShowAction(out io.Writer, args []string) error {
+	if len(args) == 1 {
+		_, valoperAddress := omg.GetValidatorAddress(args[0])
+		if valoperAddress != "" {
+			fmt.Fprintln(out, valoperAddress)
+		}
+		return nil
+	}
 	vQ, err := omg.GetValidatorsQuery()
 	if err != nil {
 		return err
@@ -45,11 +50,6 @@ func validatorShowAction(out io.Writer, args []string) error {
 		if !val.Jailed {
 			fmt.Fprintf(out, "%20s [ %s ]\n", val.Description.Moniker, val.OperatorAddress)
 		}
-	}
-	l := &omg.Accounts{}
-
-	if err := l.Load(cfg.OmgFilepath); err != nil {
-		return err
 	}
 	return nil
 }
