@@ -66,15 +66,15 @@ func balancesAction(out io.Writer, allAccounts bool, detail bool, raw bool, args
 			if omg.IsNormalAddress(acc.Address) {
 				balance, err := omg.GetBalanceDec(acc.Address)
 				if err != nil {
-					fmt.Printf("Error: %12s : %s\n", acc.Alias, err.Error())
+					fmt.Printf("Error: %20s : %s\n", acc.Alias, err.Error())
 					continue
 				}
 				if raw {
-					fmt.Fprintf(out, "%12s %s%s\n", acc.Address, balance.String(), cfg.BaseDenom)
+					fmt.Fprintf(out, "%s %s%s\n", acc.Address, balance.String(), cfg.BaseDenom)
 				} else if detail {
-					fmt.Fprintf(out, "%12s [%s]: %30s %s (%s %s)\n", acc.Alias, omg.ShortAddress(acc.Address), omg.PrettifyDenom(balance), cfg.BaseDenom, omg.DenomToTokenDec(balance).String(), cfg.Token)
+					fmt.Fprintf(out, "%20s [%s]: %30s %s (%s %s)\n", acc.Alias, omg.ShortAddress(acc.Address), omg.PrettifyDenom(balance), cfg.BaseDenom, omg.DenomToTokenDec(balance).String(), cfg.Token)
 				} else {
-					fmt.Fprintf(out, "%12s : %30s %s (%s %s)\n", acc.Alias, omg.PrettifyDenom(balance), cfg.BaseDenom, omg.DenomToTokenDec(balance).StringFixed(4), cfg.Token)
+					fmt.Fprintf(out, "%20s : %30s %s (%s %s)\n", acc.Alias, omg.PrettifyDenom(balance), cfg.BaseDenom, omg.DenomToTokenDec(balance).StringFixed(4), cfg.Token)
 				}
 			}
 		}
@@ -89,9 +89,9 @@ func balancesAction(out io.Writer, allAccounts bool, detail bool, raw bool, args
 	} else {
 		address = l.GetAddress(args[0])
 		if detail {
-			header = fmt.Sprintf("%12s [%s]: ", args[0], address)
+			header = fmt.Sprintf("%20s [%s]: ", args[0], address)
 		} else {
-			header = fmt.Sprintf("%12s : ", args[0])
+			header = fmt.Sprintf("%20s : ", args[0])
 		}
 	}
 	if address == "" {
