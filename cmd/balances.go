@@ -89,9 +89,9 @@ func balancesAction(out io.Writer, allAccounts bool, detail bool, raw bool, args
 	} else {
 		address = l.GetAddress(args[0])
 		if detail {
-			header = fmt.Sprintf("%10s [%s]: ", args[0], address)
+			header = fmt.Sprintf("%12s [%s]: ", args[0], address)
 		} else {
-			header = fmt.Sprintf("%10s : ", args[0])
+			header = fmt.Sprintf("%12s : ", args[0])
 		}
 	}
 	if address == "" {

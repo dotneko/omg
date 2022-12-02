@@ -125,7 +125,7 @@ func delegateAction(out io.Writer, keyring string, auto bool, all bool, remainde
 		if !omg.IsValidatorAddress(valAddress) {
 			// Query chain for address matching moniker if not found in address book
 			searchMoniker := strings.ToLower(validator)
-			valoperMoniker, valAddress = omg.GetValidatorAddress(searchMoniker)
+			valoperMoniker, valAddress = omg.GetValidator(searchMoniker)
 			if valoperMoniker == "" {
 				return fmt.Errorf("no validator matching %s found", validator)
 			} else {

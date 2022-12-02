@@ -36,7 +36,7 @@ func init() {
 
 func validatorShowAction(out io.Writer, args []string) error {
 	if len(args) == 1 {
-		_, valoperAddress := omg.GetValidatorAddress(args[0])
+		_, valoperAddress := omg.GetValidator(args[0])
 		if valoperAddress != "" {
 			fmt.Fprintln(out, valoperAddress)
 		}
