@@ -25,8 +25,8 @@ var wdCommissionCmd = &cobra.Command{
 			cmd.Help()
 			os.Exit(0)
 		}
-		if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-			return fmt.Errorf("expecting [name] as argument")
+		if err := cobra.ExactArgs(2)(cmd, args); err != nil {
+			return fmt.Errorf("expecting [name] [moniker|valoper-address] as argument")
 		}
 		return nil
 	},
