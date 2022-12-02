@@ -167,6 +167,9 @@ func delegateAction(out io.Writer, keyring string, auto bool, all bool, remainde
 	}
 	fmt.Fprintf(out, "Delegation amount     : %s%s\n", omg.PrettifyDenom(amount), cfg.BaseDenom)
 	fmt.Fprintf(out, "Min remainder setting : %s%s\n", omg.PrettifyDenom(remainAmt), cfg.BaseDenom)
+	if amount.IsNegative() || amount.IsZero() {
+		return fmt.Errorf("amount must be greater than zero, got %s", omg.PrettifyDenom(amount))
+	}
 	if amount.GreaterThan(balance.Sub(remainAmt)) {
 		return fmt.Errorf("insufficient balance after deducting remainder: %s %s", omg.PrettifyDenom(expectedBalance), denom)
 	}

@@ -193,7 +193,10 @@ func restakeAction(out io.Writer, remainder string, keyring string, auto bool, a
 	fmt.Fprintf(out, "Available balance     : %s%s\n", omg.PrettifyDenom(balance), cfg.BaseDenom)
 	fmt.Fprintf(out, "Delegation amount     : %s%s\n", omg.PrettifyDenom(amount), cfg.BaseDenom)
 	fmt.Fprintf(out, "Min remainder setting : %s%s\n", omg.PrettifyDenom(remainAmt), cfg.BaseDenom)
-	if amount.IsNegative() || amount.GreaterThan(balance.Sub(remainAmt)) {
+	if amount.IsNegative() || amount.IsZero() {
+		return fmt.Errorf("amount must be greater than zero, got %s", omg.PrettifyDenom(amount))
+	}
+	if amount.GreaterThan(balance.Sub(remainAmt)) {
 		return fmt.Errorf("insufficient balance after deducting remainder: %s %s", omg.PrettifyDenom(expectedBalance), denom)
 	}
 	fmt.Fprintf(out, "Est minimum remaining : %s%s\n", omg.PrettifyDenom(expectedBalance), cfg.BaseDenom)
