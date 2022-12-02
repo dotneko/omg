@@ -108,10 +108,10 @@ omg tx delegate [delegator] [moniker] --full --remainder 1000000000000anom
 omg tx restake [delegator] [moniker] --remainder 10nom
 ```
 
-11. Automatic confirm without prompt using `--auto` or `-a` flag
+11. Automatic confirm without prompt using `--yes` or `-y` flag
 
 ```
-omg tx restake [delegator] [moniker] -r 10nom -a
+omg tx restake [delegator] [moniker] -r 10nom -y
 ```
 
 12. Check validator commissions

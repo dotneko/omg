@@ -35,7 +35,7 @@ var wdrewardsCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		auto, err := cmd.Flags().GetBool("auto")
+		auto, err := cmd.Flags().GetBool("yes")
 		if err != nil {
 			return err
 		}

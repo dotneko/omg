@@ -1,6 +1,6 @@
 # `omg`
 
-**Onomy Manager** by [nomblocks.io](https://nomblocks.io/)
+**Onomy Manager** by [Nomblocks](https://nomblocks.io/)
 
 A command line tool for common user/validator interactions with the [Onomy Protocol](https://onomy.io/) blockchain.
 
@@ -12,6 +12,8 @@ A command line tool for common user/validator interactions with the [Onomy Proto
 * Sending tokens
 * Delegating and withdrawing rewards
 * Automated restaking of delegator rewards
+* Checking and withdrawing validator commissions
+* Basic conversion between anom <-> nom
 
 ## Prerequisites
 
@@ -142,7 +144,7 @@ By default, transactions will be generated and wait for user confirmation.
 
 The default keyring-backend is `test`, but can be modified using the flag `--keyring`. For example, to use the `pass` keyring-backend, specify `--keyring pass` when executing your command. This default could be configured in the `.omgconfig.yaml` config file.
 
-To automate transactions, specify `--auto` or `-a`. When this flag is used, transaction prompts are automatically confirmed, therefore *be sure that the transaction is what you want to execute*. Note that this is only confirmed to work for the default keyring-backend `test`.
+To automate transactions, specify `--yes` or `-y`. When this flag is used, transaction prompts are automatically confirmed, therefore *be sure that the transaction is what you want to execute*. Note that this is only confirmed to work for the default keyring-backend `test`.
 
 > N.B. **omg is a wrapper for the onomyd daemon and *DOES NOT* have access to the user's private keys/mnemonic**
 
@@ -182,12 +184,12 @@ omg tx restake user1 validator1
 ```
 Auto restake (using default remainder amount)
 ```
-omg tx restake user1 validator1 --auto
+omg tx restake user1 validator1 --yes
 ```
 
 Auto restake (specify remainder amount)
 ```
-omg tx restake user1 validator1 --auto -r 1000000anom
+omg tx restake user1 validator1 --yes -r 1000000anom
 ```
 
 #### Send
@@ -219,7 +221,7 @@ omg tx withdraw-rewards [user]
 
 Automated withdraw all rewards for *user1*
 ```
-omg tx wd user1 --auto
+omg tx wd user1 --yes
 ```
 
 ## Conversion
