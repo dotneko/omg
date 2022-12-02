@@ -22,7 +22,7 @@ var delegateCmd = &cobra.Command{
 	Aliases: []string{"del", "d"},
 	Use:     "delegate [account] [moniker|valoper-address] [amount][denom]",
 	Short:   "Delegate tokens from account to validator",
-	Long: fmt.Sprintf(`Delegate tokens from account to validator.
+	Long: `Delegate tokens from account to validator.
 	
 The '--full' or '-f' flag can be added to delegate the full available balance.
 A remainder specified by the '--remainder' or ='-r' flag specifies the minimum estimated
@@ -43,7 +43,7 @@ Delegate full balance (less default remainder):
 
 Delegate full balance and specify remainder:
 # omg tx delegate user1 validator1 -f -r 1000000000anom
-`),
+`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
 			cmd.Help()
