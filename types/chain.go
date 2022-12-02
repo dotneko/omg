@@ -10,6 +10,10 @@ type RewardsQuery struct {
 	Total   []DenomAmount
 }
 
+type CommissionsQuery struct {
+	Commission []DenomAmount
+}
+
 type ValidatorReward struct {
 	ValidatorAddress string `json:"validator_address"`
 	Reward           []DenomAmount

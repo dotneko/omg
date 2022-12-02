@@ -240,14 +240,16 @@ func GetValidatorsQuery() (*types.ValidatorsQuery, error) {
 	return &v, nil
 }
 
-// Search Validators by Moniker
-func GetValidatorAddress(moniker string) (string, string) {
-	searchMoniker := strings.ToLower(moniker)
+// Search validators by moniker or valoper-address
+func GetValidator(search string) (string, string) {
+	searchStr := strings.ToLower(search)
 
 	vQ, _ := GetValidatorsQuery()
 
 	for _, val := range vQ.Validators {
-		if !val.Jailed && searchMoniker == strings.ToLower(val.Description.Moniker) {
+		if !val.Jailed &&
+			searchStr == strings.ToLower(val.Description.Moniker) ||
+			searchStr == strings.ToLower(val.OperatorAddress) {
 			return val.Description.Moniker, val.OperatorAddress
 		}
 	}
@@ -270,6 +272,41 @@ func GetRewards(address string) (*types.RewardsQuery, error) {
 		return nil, err
 	}
 	return &r, nil
+}
+
+// Parse commissions for validator
+func QueryCommission(valopAddress string) (*types.CommissionsQuery, error) {
+
+	cmdStr := fmt.Sprintf("query distribution commission %s %s", jsonFlag, valopAddress)
+	out, err := exec.Command(cfg.Daemon, strings.Split(cmdStr, " ")...).Output()
+	if err != nil {
+		return nil, err
+	}
+	if !json.Valid(out) {
+		return nil, fmt.Errorf("invalid json")
+	}
+	var c types.CommissionsQuery
+	if err = json.Unmarshal(out, &c); err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
+// Get commissions (first denom) to decimal amount
+func GetCommissionDec(valopAddress string) (decimal.Decimal, error) {
+
+	cQ, err := QueryCommission(valopAddress)
+	if len(cQ.Commission) == 0 {
+		return decimal.NewFromInt(-1), fmt.Errorf("no commission found")
+	}
+	if err != nil {
+		return decimal.NewFromInt(-1), err
+	}
+	amt, err := decimal.NewFromString(cQ.Commission[0].Amount)
+	if err != nil {
+		return decimal.NewFromInt(-1), err
+	}
+	return amt, nil
 }
 
 // Delegate to validator method
