@@ -135,7 +135,7 @@ func TxWithdrawRewards(out io.Writer, name string, keyring string, auto bool) er
 // Withdraw all rewards method
 func TxWithdrawValidatorCommission(out io.Writer, name string, valoperAddress string, keyring string, auto bool) error {
 
-	cmdStr := fmt.Sprintf("tx distribution withdraw-rewards %s --from %s", valoperAddress, name)
+	cmdStr := fmt.Sprintf("tx distribution withdraw-rewards %s --from %s --commission", valoperAddress, name)
 	cmdStr += fmt.Sprintf(" --fees %s --gas auto --gas-adjustment %f", cfg.DefaultFee, cfg.GasAdjust)
 	cmdStr += fmt.Sprintf(" --keyring-backend %s --chain-id %s", keyring, cfg.ChainId)
 
