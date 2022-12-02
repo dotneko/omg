@@ -33,7 +33,7 @@ var sendCmd = &cobra.Command{
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		auto, err := cmd.Flags().GetBool("auto")
+		auto, err := cmd.Flags().GetBool("yes")
 		if err != nil {
 			return err
 		}
@@ -48,8 +48,6 @@ var sendCmd = &cobra.Command{
 func init() {
 	txCmd.AddCommand(sendCmd)
 
-	sendCmd.Flags().BoolP("auto", "a", false, "Auto confirm transaction")
-	sendCmd.Flags().StringP("keyring", "k", cfg.KeyringBackend, "Specify keyring-backend to use.")
 }
 
 func sendAction(out io.Writer, auto bool, keyring string, args []string) error {
