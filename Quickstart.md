@@ -113,3 +113,15 @@ omg tx restake [delegator] [moniker] --remainder 10nom
 ```
 omg tx restake [delegator] [moniker] -r 10nom -a
 ```
+
+12. Check validator commissions
+
+```
+omg validator commissions [moniker]               # omg v c nomblocks
+```
+
+13. Withdraw commissions and rewards for validator
+
+```
+omg tx withdraw-commission [name] [moniker]       # omg tx wc validator nomblocks
+```

@@ -41,7 +41,7 @@ Copy/move `.omgconfig.yaml` to home directory or `omg` binary path
 
 ## Usage
 
-A full list of commands is shown by running `omg` with the `--help` or `-h` flag
+A full list of commands is shown by running `omg` with the `--help` or `-h` flag. This will also show the abbreviations for each command.
 
 ### Managing Addresses
 
@@ -88,6 +88,12 @@ A list of active validators and their valoper-addresses on the chain can be quer
 omg validator show
 ```
 
+To show commissions for a validator:
+
+```
+omg validator commissions [moniker|valoper-address]
+```
+
 ### Queries
 
 Check balances for *user1*
@@ -121,10 +127,11 @@ omg balances -a -raw
 Transactions functions are listed under `tx` command:
 
 ```
-  delegate           Delegate tokens from account to validator
-  restake            Restake rewards for account to validator
-  send               Send tokens from an account to another account/address
-  withdraw-rewards   Withdraw all rewards for account
+  delegate            Delegate tokens from account to validator
+  restake             Withdraw rewards and restake to validator
+  send                Send tokens from an account to another account/address
+  withdraw-commission Withdraw commissions and rewards for validator
+  withdraw-rewards    Withdraw all rewards for account
 ```
 
 All transactions assume that the account `name` in the address book matches the name of the user's key in the keyring, and will fail if the onomyd cannot find the key in the keyring.
@@ -196,11 +203,18 @@ Send tokens from account to external address
 omg tx send user1 onomy1234567890123456789012345678901234567xx 1000000anom
 ```
 
+#### Withdraw validator commissions and rewards
+
+```
+omg tx withdraw-commissions [validator] [moniker|valoper-address]
+```
+> This assumes that [validator] matches the name of the keyring and is a self-delegate of the validator
+
 #### Withdraw rewards
 
 Withdraw all rewards for *user1*
 ```
-omg tx withdraw-rewards user1
+omg tx withdraw-rewards [user]
 ```
 
 Automated withdraw all rewards for *user1*
