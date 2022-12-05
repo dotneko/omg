@@ -52,10 +52,6 @@ func TestStrSplitAmountDenomDec(t *testing.T) {
 		{"-1234567890anom", decimal.NewFromFloat(-1234567890), "anom"},
 		{fmt.Sprintf("0.00001%s", cfg.BaseDenom), decimal.NewFromFloat(0.00001), cfg.BaseDenom},
 		{fmt.Sprintf("10%s", cfg.Token), decimal.NewFromFloat(10), cfg.Token},
-		{"0.123", decimal.NewFromFloat(0.123), ""},
-		{"99999", decimal.NewFromFloat(99999), ""},
-		{"-100", decimal.NewFromFloat(-100), ""},
-		{"-1", decimal.NewFromFloat(-1), ""},
 	}
 	for _, test := range tests {
 
