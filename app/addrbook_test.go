@@ -21,6 +21,7 @@ func TestAddressTypes(t *testing.T) {
 
 	invalidPrefix := "cosmosnotavalidaddress0000000000000000000000"
 	invalidLength := "onomy1234568901111111111111111111111111111119"
+
 	type typeTest struct {
 		address     string
 		isNormal    bool
@@ -46,6 +47,28 @@ func TestAddressTypes(t *testing.T) {
 	}
 }
 
+func TestIsSelfDelegate(t *testing.T) {
+	normalAddress := "onomy12345678901234567890123456789012x456789"
+	validatorAddress := "onomyvaloper123456789012345678901234567890123456789"
+	selfDelegateAddress := "onomy1tman8gcu0d8rn7md6q9qdxme0dp74yv3wqch6f"
+	selfValoperAddress := "onomyvaloper1tman8gcu0d8rn7md6q9qdxme0dp74yv3j86qxl"
+
+	type typeTest struct {
+		address        string
+		valoperAddress string
+		expected       bool
+	}
+	var typeTests = []typeTest{
+		{selfDelegateAddress, selfValoperAddress, true},
+		{selfDelegateAddress, validatorAddress, false},
+		{normalAddress, validatorAddress, false},
+	}
+	for _, test := range typeTests {
+		if omg.IsSelfDelegate(test.address, test.valoperAddress) != test.expected {
+			t.Errorf("Expected %t for %s, %s", test.expected, test.address, test.valoperAddress)
+		}
+	}
+}
 func TestAdd(t *testing.T) {
 	l := omg.Accounts{}
 

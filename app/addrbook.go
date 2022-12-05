@@ -19,6 +19,7 @@ type Accounts []Account
 
 const (
 	bech32len  int = 39
+	matchlen   int = 33
 	AccNormal      = "normal"
 	AccValoper     = "valoper"
 	AccAll         = "all"
@@ -48,6 +49,21 @@ func IsValidAddress(address string) bool {
 		return false
 	}
 	return true
+}
+
+// Simple check if address is self-delegate for validator
+// 1tman8gcu0d8rn7md6q9qdxme0dp74yv3
+// 33 matching characters after the prefix
+func IsSelfDelegate(address string, valoperAddress string) bool {
+	if !IsNormalAddress(address) || !IsValidatorAddress(valoperAddress) {
+		return false
+	}
+
+	if address[len(cfg.AddressPrefix):len(cfg.AddressPrefix)+matchlen] ==
+		valoperAddress[len(cfg.ValoperPrefix):len(cfg.ValoperPrefix)+matchlen] {
+		return true
+	}
+	return false
 }
 
 func ShortAddress(address string) string {

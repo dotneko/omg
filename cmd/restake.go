@@ -61,34 +61,41 @@ Restake specified amount
 		if err != nil {
 			return err
 		}
+		withCommission, err := cmd.Flags().GetBool("commission")
+		if err != nil {
+			return err
+		}
 		remainder, err := cmd.Flags().GetString("remainder")
 		if err != nil {
 			return err
 		}
-		return restakeAction(os.Stdout, remainder, keyring, auto, args)
+		return restakeAction(os.Stdout, auto, withCommission, keyring, remainder, args)
 	},
 }
 
 func init() {
 	txCmd.AddCommand(restakeCmd)
+	restakeCmd.Flags().StringP("commission", "c", cfg.Remainder, "Include commission if validator")
 	restakeCmd.Flags().StringP("remainder", "r", cfg.Remainder, "Remainder after restake")
 
 }
 
-func restakeAction(out io.Writer, remainder string, keyring string, auto bool, args []string) error {
+func restakeAction(out io.Writer, auto bool, withCommission bool, keyring string, remainder string, args []string) error {
 	// Ensure all arguments provided
 
 	delegator := args[0]
 	validator := args[1]
 	var (
 		delegatorAddress string
-		valAddress       string
+		valoperAddress   string
 		valoperMoniker   string
 		amount           decimal.Decimal
 		balanceBefore    decimal.Decimal
 		denom            string = cfg.BaseDenom
 		remainAmt        decimal.Decimal
 		remainDenom      string
+		rewards          decimal.Decimal
+		commission       decimal.Decimal
 		expectedBalance  decimal.Decimal
 	)
 
@@ -110,25 +117,45 @@ func restakeAction(out io.Writer, remainder string, keyring string, auto bool, a
 
 	// Check if valid validator or validator address or moniker
 	if omg.IsValidatorAddress(validator) {
-		valAddress = validator
+		valoperAddress = validator
 	} else {
-		valAddress = l.GetAddress(validator)
-		if !omg.IsValidatorAddress(valAddress) {
+		valoperAddress = l.GetAddress(validator)
+		if !omg.IsValidatorAddress(valoperAddress) {
 			// Query chain for address matching moniker if not found in address book
 			searchMoniker := strings.ToLower(validator)
-			valoperMoniker, valAddress = omg.GetValidator(searchMoniker)
+			valoperMoniker, valoperAddress = omg.GetValidator(searchMoniker)
 			if valoperMoniker == "" {
 				return fmt.Errorf("no validator matching %s found", validator)
 			} else {
-				fmt.Fprintf(out, "Found active validator %s [%s]\n----\n", valoperMoniker, valAddress)
+				fmt.Fprintf(out, "Found active validator %s [%s]\n----\n", valoperMoniker, valoperAddress)
 			}
 		}
 	}
+	// If include commissions, check if self-delegate
+	if withCommission {
+		if !omg.IsSelfDelegate(delegatorAddress, valoperAddress) {
+			return fmt.Errorf("cannot include commissions: %s is not a self-delegate for %s", delegator, validator)
+		}
+		c, err := omg.QueryCommission(valoperAddress)
+		if err != nil {
+			return err
+		}
+		if c.Commission[0].Denom != cfg.BaseDenom {
+			return fmt.Errorf("expected total denom to be %q, got %q", cfg.BaseDenom, c.Commission[0].Denom)
+		}
+		commission, err = omg.StrToDec(c.Commission[0].Amount)
+		if err != nil {
+			return err
+		}
+	}
+
 	// Check balance for delegator
 	balanceBefore, err := omg.GetBalanceDec(delegatorAddress)
 	if err != nil {
 		return fmt.Errorf("error querying balance for %s", delegator)
 	}
+
+	// Check rewards
 	r, err := omg.GetRewards(delegatorAddress)
 	if err != nil {
 		return err
@@ -136,16 +163,25 @@ func restakeAction(out io.Writer, remainder string, keyring string, auto bool, a
 	if r.Total[0].Denom != cfg.BaseDenom {
 		return fmt.Errorf("expected total denom to be %q, got %q", cfg.BaseDenom, r.Total[0].Denom)
 	}
-	rewards, err := omg.StrToDec(r.Total[0].Amount)
+	rewards, err = omg.StrToDec(r.Total[0].Amount)
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(out, "Delegator         : %s [%s]\n", delegator, delegatorAddress)
-	fmt.Fprintf(out, "Existing balance  : %10s %s ( %s%s )\n", omg.DenomToTokenDec(balanceBefore).StringFixed(4), cfg.Token, omg.PrettifyDenom(balanceBefore), denom)
-	fmt.Fprintf(out, "Unclaimed rewards : %10s %s ( %s%s )\n", omg.DenomToTokenDec(rewards).StringFixed(4), cfg.Token, omg.PrettifyDenom(rewards), denom)
+
+	fmt.Fprintf(out, "Delegator             : %s [%s]\n", delegator, delegatorAddress)
+	fmt.Fprintf(out, "Existing balance      : %10s %s ( %s%s )\n", omg.DenomToTokenDec(balanceBefore).StringFixed(4), cfg.Token, omg.PrettifyDenom(balanceBefore), denom)
+	fmt.Fprintf(out, "Unclaimed rewards     : %10s %s ( %s%s )\n", omg.DenomToTokenDec(rewards).StringFixed(4), cfg.Token, omg.PrettifyDenom(rewards), denom)
+	if withCommission {
+		fmt.Fprintf(out, "Unclaimed commissions : %10s Ts ( %s%s )\n", omg.DenomToTokenDec(commission).StringFixed(4), cfg.Token, omg.PrettifyDenom(commission))
+	}
 	fmt.Fprintln(out, "----")
-	fmt.Fprintf(out, "Withdrawing rewards...\n")
-	omg.TxWithdrawRewards(out, delegator, keyring, auto)
+	if withCommission {
+		fmt.Fprintf(out, "Withdrawing rewards plus commission...\n")
+		omg.TxWithdrawValidatorCommission(out, delegator, valoperAddress, keyring, auto)
+	} else {
+		fmt.Fprintf(out, "Withdrawing rewards...\n")
+		omg.TxWithdrawRewards(out, delegator, keyring, auto)
+	}
 
 	// Wait till balance is updated
 	var balance decimal.Decimal
@@ -188,7 +224,7 @@ func restakeAction(out io.Writer, remainder string, keyring string, auto bool, a
 		expectedBalance = balance.Sub(amount)
 	}
 	fmt.Fprintln(out, "----")
-	fmt.Fprintf(out, "Delegate to Validator : %s\n", valAddress)
+	fmt.Fprintf(out, "Delegate to Validator : %s\n", valoperAddress)
 	fmt.Fprintf(out, "Available balance     : %10s %s ( %s%s )\n", omg.DenomToTokenDec(balance).StringFixed(4), cfg.Token, omg.PrettifyDenom(balance), cfg.BaseDenom)
 	fmt.Fprintf(out, "Delegation amount     : %10s %s ( %s%s )\n", omg.DenomToTokenDec(amount).StringFixed(4), cfg.Token, omg.PrettifyDenom(amount), cfg.BaseDenom)
 	fmt.Fprintf(out, "Min remainder setting : %10s %s ( %s%s )\n", omg.DenomToTokenDec(remainAmt).StringFixed(4), cfg.Token, omg.PrettifyDenom(remainAmt), cfg.BaseDenom)
@@ -201,6 +237,6 @@ func restakeAction(out io.Writer, remainder string, keyring string, auto bool, a
 	fmt.Fprintf(out, "Est minimum remaining : %10s %s ( %s%s )\n", omg.DenomToTokenDec(expectedBalance).StringFixed(4), cfg.Token, omg.PrettifyDenom(expectedBalance), cfg.BaseDenom)
 	fmt.Fprintln(out, "----")
 
-	omg.TxDelegateToValidator(delegator, valAddress, amount, keyring, auto)
+	omg.TxDelegateToValidator(delegator, valoperAddress, amount, keyring, auto)
 	return nil
 }
