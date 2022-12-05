@@ -11,7 +11,7 @@ A command line tool for common user/validator interactions with the [Onomy Proto
 * Query balances and rewards
 * Sending tokens
 * Delegating and withdrawing rewards
-* Automated restaking of delegator rewards
+* Automated restaking of delegator rewards +/- commissions
 * Checking and withdrawing validator commissions
 * Basic conversion between anom <-> nom
 
@@ -78,7 +78,7 @@ Show list of addresses:
 omg addr show
 ```
 
-Get address for *user1*
+Show address for *user1*
 ```
 omg addr show user1
 ```
@@ -90,7 +90,7 @@ A list of active validators and their valoper-addresses on the chain can be quer
 omg validator show
 ```
 
-To show commissions for a validator:
+To check commissions for a validator:
 
 ```
 omg validator commissions [moniker|valoper-address]
@@ -124,6 +124,9 @@ Raw amounts can be displayed by the `--raw` or `-r` flag.
 ```
 omg balances -a -raw
 ```
+
+Detailed amounts can be displayed using the `--detail` or `-d` flag.
+
 ### Transactions
 
 Transactions functions are listed under `tx` command:
@@ -136,15 +139,15 @@ Transactions functions are listed under `tx` command:
   withdraw-rewards    Withdraw all rewards for account
 ```
 
-All transactions assume that the account `name` in the address book matches the name of the user's key in the keyring, and will fail if the onomyd cannot find the key in the keyring.
+All transactions assume that the account `name` in the address book matches the name of the user's key in the keyring, and will fail if `onomyd` cannot find the key in the keyring.
 
-For **delegate** and **restake** commands, one can specify the `moniker` of an active validator on chain, or the validator *valoper* address. 
+For **delegate** and **restake** commands, one can specify the `moniker` of an active validator on chain, or the validator *valoper-address*. 
 
 By default, transactions will be generated and wait for user confirmation.
 
 The default keyring-backend is `test`, but can be modified using the flag `--keyring`. For example, to use the `pass` keyring-backend, specify `--keyring pass` when executing your command. This default could be configured in the `.omgconfig.yaml` config file.
 
-To automate transactions, specify `--yes` or `-y`. When this flag is used, transaction prompts are automatically confirmed, therefore *be sure that the transaction is what you want to execute*. Note that this is only confirmed to work for the default keyring-backend `test`.
+To automate transactions, specify `--yes` or `-y`. When this flag is used, transaction prompts are automatically confirmed, therefore *be sure that the transaction is what you want to execute*.
 
 > N.B. **omg is a wrapper for the onomyd daemon and *DOES NOT* have access to the user's private keys/mnemonic**
 
@@ -200,17 +203,10 @@ Send tokens between accounts in the address book
 omg tx send user1 user2 1000000anom
 ```
 
-Send tokens from account to external address
+Send tokens from [user account] to external address
 ```
-omg tx send user1 onomy1234567890123456789012345678901234567xx 1000000anom
+omg tx send user1 onomy123456789012345678901234567890123456799 1000000anom
 ```
-
-#### Withdraw validator commissions and rewards
-
-```
-omg tx withdraw-commissions [validator] [moniker|valoper-address]
-```
-> This assumes that [validator] matches the name of the keyring and is a self-delegate of the validator
 
 #### Withdraw rewards
 
@@ -224,18 +220,35 @@ Automated withdraw all rewards for *user1*
 omg tx wd user1 --yes
 ```
 
-## Conversion
+#### Validator commissions and rewards
 
-Convert token amount to base denom amount
+For validator accounts, self-delegation rewards and commissions can be withdrawn using the `tx withdraw-commissions` command.
+
 ```
-omg convert 1nom // Returns 1000000000000000000anom
+omg tx withdraw-commissions [validator] [moniker|valoper-address]
 ```
+
+> This assumes that [validator] matches the name of the keyring and is a self-delegate of the validator
+
+Restaking can also include commissions for validator accounts that self-delegate by adding the `--commission` or `-c` flag.
+
+```
+omg tx restake [validator] [moniker] --commission --remainder 100nom
+```
+
+## Conversion
 
 Convert base denom amount to token amount
 ```
 omg convert 1000000000000000000anom   // Returns 1nom
 ```
 
+Convert token amount to base denom amount
 ```
-omg convert 1_000_000_000_000_000_000anom // Returns 1nom
+omg c 1nom // Returns 1000000000000000000anom
+```
+
+The underline separator is supported
+```
+omg c 1_000_000_000_000_000_000anom // Returns 1nom
 ```

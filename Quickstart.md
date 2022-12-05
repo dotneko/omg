@@ -125,3 +125,9 @@ omg validator commissions [moniker]               # omg v c nomblocks
 ```
 omg tx withdraw-commission [name] [moniker]       # omg tx wc validator nomblocks
 ```
+
+14. Restake commissions and self-delegate rewards for validator
+
+```
+omg tx restake [validator] [validator moniker|valoper-address] --commissions -r 100nom
+```
