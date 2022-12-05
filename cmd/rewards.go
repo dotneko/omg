@@ -38,11 +38,15 @@ var rewardsCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		detail, err := cmd.Flags().GetBool("detail")
+		if err != nil {
+			return err
+		}
 		raw, err := cmd.Flags().GetBool("raw")
 		if err != nil {
 			return err
 		}
-		return rewardsAction(os.Stdout, allAccounts, raw, args)
+		return rewardsAction(os.Stdout, allAccounts, detail, raw, args)
 	},
 }
 
@@ -50,17 +54,24 @@ func init() {
 	rootCmd.AddCommand(rewardsCmd)
 
 	rewardsCmd.Flags().BoolP("all", "a", false, "Check all accounts in address book")
+	rewardsCmd.Flags().BoolP("detail", "d", false, "Detailed output")
 	rewardsCmd.Flags().BoolP("raw", "r", false, "Raw output")
 
 }
 
-func rewardsAction(out io.Writer, allAccounts bool, raw bool, args []string) error {
+func rewardsAction(out io.Writer, allAccounts bool, detail bool, raw bool, args []string) error {
 	l := &omg.Accounts{}
 
 	if err := l.Load(cfg.OmgFilepath); err != nil {
 		return err
 	}
 
+	var outType string = ""
+	if raw {
+		outType = omg.RAW
+	} else if detail {
+		outType = omg.DETAIL
+	}
 	if allAccounts {
 		for _, acc := range *l {
 			if omg.IsNormalAddress(acc.Address) {
@@ -69,17 +80,14 @@ func rewardsAction(out io.Writer, allAccounts bool, raw bool, args []string) err
 					return err
 				}
 				if len(r.Rewards) != 0 {
-					fmt.Printf("Rewards for %12s [%s]:\n", acc.Alias, acc.Address)
+					fmt.Printf("Rewards for %s\n", acc.Alias)
 					for _, v := range r.Rewards {
 						amt, err := omg.StrToDec(v.Reward[0].Amount)
 						if err != nil {
 							return err
 						}
-						if raw {
-							fmt.Fprintf(out, "%s\n%s%s\n", v.ValidatorAddress, v.Reward[0].Amount, v.Reward[0].Denom)
-						} else {
-							fmt.Fprintf(out, "> %s: %25s %s (%s %s)\n", omg.ShortAddress(v.ValidatorAddress), omg.PrettifyDenom(amt), cfg.BaseDenom, omg.DenomToTokenDec(amt).StringFixed(4), cfg.Token)
-						}
+						moniker, valoperAddress := omg.GetValidator(v.ValidatorAddress)
+						omg.OutputAmount(out, moniker, valoperAddress, amt, v.Reward[0].Denom, outType)
 					}
 				}
 			}
@@ -107,11 +115,8 @@ func rewardsAction(out io.Writer, allAccounts bool, raw bool, args []string) err
 		if err != nil {
 			return err
 		}
-		if raw {
-			fmt.Fprintf(out, "%s\n%s%s\n", v.ValidatorAddress, v.Reward[0].Amount, v.Reward[0].Denom)
-		} else {
-			fmt.Fprintf(out, "> %s: %25s %s (%s %s)\n", omg.ShortAddress(v.ValidatorAddress), omg.PrettifyDenom(amt), cfg.BaseDenom, omg.DenomToTokenDec(amt).StringFixed(4), cfg.Token)
-		}
+		moniker, valoperAddress := omg.GetValidator(v.ValidatorAddress)
+		omg.OutputAmount(out, moniker, valoperAddress, amt, v.Reward[0].Denom, outType)
 	}
 	return nil
 }

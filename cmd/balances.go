@@ -61,6 +61,12 @@ func balancesAction(out io.Writer, allAccounts bool, detail bool, raw bool, args
 	if err := l.Load(cfg.OmgFilepath); err != nil {
 		return err
 	}
+	var outType string = ""
+	if raw {
+		outType = omg.RAW
+	} else if detail {
+		outType = omg.DETAIL
+	}
 	if allAccounts {
 		for _, acc := range *l {
 			if omg.IsNormalAddress(acc.Address) {
@@ -69,30 +75,19 @@ func balancesAction(out io.Writer, allAccounts bool, detail bool, raw bool, args
 					fmt.Printf("Error: %20s : %s\n", acc.Alias, err.Error())
 					continue
 				}
-				if raw {
-					fmt.Fprintf(out, "%s %s%s\n", acc.Address, balance.String(), cfg.BaseDenom)
-				} else if detail {
-					fmt.Fprintf(out, "%20s [%s]: %30s %s (%s %s)\n", acc.Alias, omg.ShortAddress(acc.Address), omg.PrettifyDenom(balance), cfg.BaseDenom, omg.DenomToTokenDec(balance).String(), cfg.Token)
-				} else {
-					fmt.Fprintf(out, "%20s : %30s %s (%s %s)\n", acc.Alias, omg.PrettifyDenom(balance), cfg.BaseDenom, omg.DenomToTokenDec(balance).StringFixed(4), cfg.Token)
-				}
+				omg.OutputAmount(out, acc.Alias, acc.Address, balance, cfg.BaseDenom, outType)
 			}
 		}
 		return nil
 	}
 
-	var address string
-	var header string
+	var name, address string
 	if omg.IsNormalAddress(args[0]) {
+		name = ""
 		address = args[0]
-		header = ""
 	} else {
+		name = args[0]
 		address = l.GetAddress(args[0])
-		if detail {
-			header = fmt.Sprintf("%20s [%s]: ", args[0], address)
-		} else {
-			header = fmt.Sprintf("%20s : ", args[0])
-		}
 	}
 	if address == "" {
 		return fmt.Errorf("account %q not found", args[0])
@@ -101,10 +96,6 @@ func balancesAction(out io.Writer, allAccounts bool, detail bool, raw bool, args
 	if err != nil {
 		return err
 	}
-	if raw {
-		fmt.Fprintf(out, "%s%s", balance.String(), cfg.BaseDenom)
-	} else {
-		fmt.Fprintf(out, header+"%s %s (%s %s)\n", omg.PrettifyDenom(balance), cfg.BaseDenom, omg.DenomToTokenDec(balance).String(), cfg.Token)
-	}
+	omg.OutputAmount(out, name, address, balance, cfg.BaseDenom, outType)
 	return nil
 }

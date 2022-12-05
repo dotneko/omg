@@ -62,7 +62,13 @@ func commissionsAction(out io.Writer, allAccounts bool, detail bool, raw bool, a
 	var (
 		moniker        string = ""
 		valoperAddress string = ""
+		outType        string = ""
 	)
+	if raw {
+		outType = omg.RAW
+	} else if detail {
+		outType = omg.DETAIL
+	}
 	if len(args) == 1 {
 		moniker, valoperAddress = omg.GetValidator(args[0])
 
@@ -74,14 +80,7 @@ func commissionsAction(out io.Writer, allAccounts bool, detail bool, raw bool, a
 		if err != nil {
 			return err
 		}
-		if raw {
-			fmt.Fprintf(out, "%s%s\n", commission.String(), cfg.BaseDenom)
-		} else if detail {
-			fmt.Fprintf(out, "%20s [%s]: %30s %s (%s %s)\n", moniker, omg.ShortAddress(valoperAddress),
-				omg.PrettifyDenom(commission), cfg.BaseDenom, omg.DenomToTokenDec(commission).String(), cfg.Token)
-		} else {
-			fmt.Fprintf(out, "%20s : %30s %s (%s %s)\n", moniker, omg.PrettifyDenom(commission), cfg.BaseDenom, omg.DenomToTokenDec(commission).StringFixed(4), cfg.Token)
-		}
+		omg.OutputAmount(out, moniker, valoperAddress, commission, cfg.BaseDenom, outType)
 		return nil
 	}
 
@@ -97,15 +96,7 @@ func commissionsAction(out io.Writer, allAccounts bool, detail bool, raw bool, a
 					fmt.Printf("Error: %12s : %s\n", val.Description.Moniker, err.Error())
 					continue
 				}
-				if raw {
-					fmt.Fprintf(out, "%s %s%s\n", val.OperatorAddress, commission.String(), cfg.BaseDenom)
-				} else if detail {
-					fmt.Fprintf(out, "%20s [%s]: %30s %s (%s %s)\n", val.Description.Moniker, omg.ShortAddress(val.OperatorAddress),
-						omg.PrettifyDenom(commission), cfg.BaseDenom, omg.DenomToTokenDec(commission).String(), cfg.Token)
-				} else {
-					fmt.Fprintf(out, "%20s : %30s %s (%s %s)\n", val.Description.Moniker, omg.PrettifyDenom(commission), cfg.BaseDenom,
-						omg.DenomToTokenDec(commission).StringFixed(4), cfg.Token)
-				}
+				omg.OutputAmount(out, val.Description.Moniker, val.OperatorAddress, commission, cfg.BaseDenom, outType)
 			}
 		}
 	}
