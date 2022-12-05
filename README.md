@@ -165,16 +165,16 @@ Underscored '000s separators are supported for the amount
 omg tx delegate user1 validator1 100_000_000_000anom
 ```
 
-To delegate the full avaiable balance leaving a remainder, use the `--full` or `-f` flag. The default remainder is configured in the configuration file.
+If no amount is provided, it is assumed that the full balance (less remainder) will be delegated. The default remainder is configured in the configuration file.
 
 ```
-omg tx delegate user1 validator1 --full
+omg tx delegate user1 validator1
 ```
 
-To adjust the remainder amount, add the `--remainder [amount]` or `-r [amount]` flag denominated in the base denom.
+To adjust the remainder amount, add the `--remainder [amount]` or `-r [amount]` flag. Either the token amount or the base denom can be specified.
 
 ```
-omg tx delegate user1 validator1 --full -r 1000anom
+omg tx delegate user1 validator1 -r 1nom
 ```
 
 > N.B. The final balance is likely to differ from the remainder set due to *auto claim rewards* being triggered by the delegation transaction.

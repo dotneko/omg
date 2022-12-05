@@ -24,9 +24,10 @@ var delegateCmd = &cobra.Command{
 	Short:   "Delegate tokens from account to validator",
 	Long: `Delegate tokens from account to validator.
 	
-The '--full' or '-f' flag can be added to delegate the full available balance.
+If no amount is provided, it is assumed that the user wants to delegate the full amount.
 A remainder specified by the '--remainder' or ='-r' flag specifies the minimum estimated
-remaining balance that must be left after delegation or the transaction will abort. 
+remaining balance that must be left after delegation. The transaction will abort if there is
+insufficient funds.
 Therefore:
 
 	[amount] must be >= [balance after withdraw rewards] - [remainder]
@@ -39,10 +40,10 @@ Delegate specified amount from user1 to validator1:
 # omg tx delegate user1 validator1 1000000000anom
 
 Delegate full balance (less default remainder):
-# omg tx delegate user1 validator1 --full
+# omg tx delegate user1 validator1
 
 Delegate full balance and specify remainder:
-# omg tx delegate user1 validator1 -f -r 1000000000anom
+# omg tx delegate user1 validator1 -r 1000000000anom
 `,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
@@ -51,10 +52,6 @@ Delegate full balance and specify remainder:
 		}
 		if err := cobra.RangeArgs(2, 3)(cmd, args); err != nil {
 			return fmt.Errorf("expecting [account] [moniker|valoper-address] [amount][denom] as arguments")
-		}
-		all, _ := cmd.Flags().GetBool("full")
-		if len(args) == 2 && !all {
-			return fmt.Errorf("no delegation amount nor --full flag specified")
 		}
 		return nil
 	},
@@ -67,15 +64,11 @@ Delegate full balance and specify remainder:
 		if err != nil {
 			return err
 		}
-		all, err := cmd.Flags().GetBool("full")
-		if err != nil {
-			return err
-		}
 		remainder, err := cmd.Flags().GetString("remainder")
 		if err != nil {
 			return err
 		}
-		return delegateAction(os.Stdout, keyring, auto, all, remainder, args)
+		return delegateAction(os.Stdout, keyring, auto, remainder, args)
 	},
 }
 
@@ -87,7 +80,7 @@ func init() {
 
 }
 
-func delegateAction(out io.Writer, keyring string, auto bool, all bool, remainder string, args []string) error {
+func delegateAction(out io.Writer, keyring string, auto bool, remainder string, args []string) error {
 
 	delegator := args[0]
 	validator := args[1]
@@ -150,7 +143,8 @@ func delegateAction(out io.Writer, keyring string, auto bool, all bool, remainde
 	if remainDenom == cfg.Token {
 		remainAmt, _ = omg.ConvertDecDenom(remainAmt, remainDenom)
 	}
-	if all {
+	if len(args) < 3 {
+		// Delegate full amount if none given
 		amount = balance.Sub(remainAmt)
 		expectedBalance = remainAmt
 	} else {

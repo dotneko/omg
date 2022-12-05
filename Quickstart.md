@@ -97,10 +97,10 @@ omg tx withdraw-rewards [delegator]     # omg tx wd user1
 omg tx delegate [delegator] [moniker] 10nom
 ```
 
-9. Delegate all leaving 1000000000000anom to validator
+9. Delegate all to validator, leaving 1000000000000anom minimum remainder
 
 ```
-omg tx delegate [delegator] [moniker] --full --remainder 1000000000000anom
+omg tx delegate [delegator] [moniker] --remainder 1000000000000anom
 ```
 
 10. Restake all leaving 10nom (withdraw all then delegate)
@@ -129,5 +129,5 @@ omg tx withdraw-commission [name] [moniker]       # omg tx wc validator nomblock
 14. Restake commissions and self-delegate rewards for validator
 
 ```
-omg tx restake [validator] [validator moniker|valoper-address] --commissions -r 100nom
+omg tx restake [validator] [validator moniker|valoper-address] --commission -r 100nom
 ```
