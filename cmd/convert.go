@@ -33,7 +33,7 @@ var (
 			}
 			if len(args) == 2 {
 				if args[1] != cfg.BaseDenom && args[1] != cfg.Token {
-					fmt.Printf("Error: denom must be %q or %q; got %q\n", cfg.BaseDenom, cfg.Token, args[1])
+					return fmt.Errorf("denom must be %q or %q", cfg.BaseDenom, cfg.Token)
 				}
 			}
 			return nil
@@ -77,7 +77,6 @@ func convertAction(out io.Writer, detail bool, args []string) error {
 		convDenom  string
 	)
 	convAmount, convDenom = omg.ConvertDecDenom(amount, denom)
-
 	if detail {
 		fmt.Fprintf(out, "%s => %s\n", omg.PrettifyAmount(amount, denom), omg.PrettifyAmount(convAmount, convDenom))
 	} else {

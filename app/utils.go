@@ -38,6 +38,8 @@ func ConvertDecDenom(amount decimal.Decimal, denom string) (decimal.Decimal, str
 	} else if denom == cfg.Token {
 		convAmount = TokenToDenomDec(amount)
 		convDenom = cfg.BaseDenom
+	} else {
+		return decimal.NewFromInt(-1), ""
 	}
 	return convAmount, convDenom
 }
@@ -54,7 +56,7 @@ func StrSplitAmountDenomDec(amtstr string) (decimal.Decimal, string, error) {
 	}
 	denom := AlphaRegex.ReplaceAllString(amtstr, "")
 	if denom != cfg.BaseDenom && denom != cfg.Token {
-		return amt, "", nil
+		return decimal.NewFromInt(0), "", fmt.Errorf("denom must be %q or %q", cfg.BaseDenom, cfg.Token)
 	}
 	return amt, denom, nil
 }
