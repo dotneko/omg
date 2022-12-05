@@ -22,7 +22,7 @@ var (
 		Aliases: []string{"cv", "c"},
 		Use:     "convert [amount][denom]",
 		Short:   fmt.Sprintf("Conversion between %s and %s", cfg.BaseDenom, cfg.Token),
-		Long:    `Conversion tool between token and denom amounts`,
+		Long:    fmt.Sprintf("Conversion between %s and %s", cfg.BaseDenom, cfg.Token),
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {
 				cmd.Help()
