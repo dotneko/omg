@@ -71,7 +71,6 @@ Restake specified amount
 
 func init() {
 	txCmd.AddCommand(restakeCmd)
-
 	restakeCmd.Flags().StringP("remainder", "r", cfg.Remainder, "Remainder after restake")
 
 }
@@ -142,8 +141,8 @@ func restakeAction(out io.Writer, remainder string, keyring string, auto bool, a
 		return err
 	}
 	fmt.Fprintf(out, "Delegator         : %s [%s]\n", delegator, delegatorAddress)
-	fmt.Fprintf(out, "Existing balance  : %s%s\n", omg.PrettifyDenom(balanceBefore), denom)
-	fmt.Fprintf(out, "Unclaimed rewards : %s%s\n", omg.PrettifyDenom(rewards), denom)
+	fmt.Fprintf(out, "Existing balance  : %10s %s ( %s%s )\n", omg.DenomToTokenDec(balanceBefore).StringFixed(4), cfg.Token, omg.PrettifyDenom(balanceBefore), denom)
+	fmt.Fprintf(out, "Unclaimed rewards : %10s %s ( %s%s )\n", omg.DenomToTokenDec(rewards).StringFixed(4), cfg.Token, omg.PrettifyDenom(rewards), denom)
 	fmt.Fprintln(out, "----")
 	fmt.Fprintf(out, "Withdrawing rewards...\n")
 	omg.TxWithdrawRewards(out, delegator, keyring, auto)
@@ -190,16 +189,16 @@ func restakeAction(out io.Writer, remainder string, keyring string, auto bool, a
 	}
 	fmt.Fprintln(out, "----")
 	fmt.Fprintf(out, "Delegate to Validator : %s\n", valAddress)
-	fmt.Fprintf(out, "Available balance     : %s%s\n", omg.PrettifyDenom(balance), cfg.BaseDenom)
-	fmt.Fprintf(out, "Delegation amount     : %s%s\n", omg.PrettifyDenom(amount), cfg.BaseDenom)
-	fmt.Fprintf(out, "Min remainder setting : %s%s\n", omg.PrettifyDenom(remainAmt), cfg.BaseDenom)
+	fmt.Fprintf(out, "Available balance     : %10s %s ( %s%s )\n", omg.DenomToTokenDec(balance).StringFixed(4), cfg.Token, omg.PrettifyDenom(balance), cfg.BaseDenom)
+	fmt.Fprintf(out, "Delegation amount     : %10s %s ( %s%s )\n", omg.DenomToTokenDec(amount).StringFixed(4), cfg.Token, omg.PrettifyDenom(amount), cfg.BaseDenom)
+	fmt.Fprintf(out, "Min remainder setting : %10s %s ( %s%s )\n", omg.DenomToTokenDec(remainAmt).StringFixed(4), cfg.Token, omg.PrettifyDenom(remainAmt), cfg.BaseDenom)
 	if amount.IsNegative() || amount.IsZero() {
 		return fmt.Errorf("amount must be greater than zero, got %s", omg.PrettifyDenom(amount))
 	}
 	if amount.GreaterThan(balance.Sub(remainAmt)) {
 		return fmt.Errorf("insufficient balance after deducting remainder: %s %s", omg.PrettifyDenom(expectedBalance), denom)
 	}
-	fmt.Fprintf(out, "Est minimum remaining : %s%s\n", omg.PrettifyDenom(expectedBalance), cfg.BaseDenom)
+	fmt.Fprintf(out, "Est minimum remaining : %10s %s ( %s%s )\n", omg.DenomToTokenDec(expectedBalance).StringFixed(4), cfg.Token, omg.PrettifyDenom(expectedBalance), cfg.BaseDenom)
 	fmt.Fprintln(out, "----")
 
 	omg.TxDelegateToValidator(delegator, valAddress, amount, keyring, auto)
