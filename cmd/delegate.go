@@ -138,7 +138,7 @@ func delegateAction(out io.Writer, keyring string, auto bool, all bool, remainde
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(out, "Available balance     : %s %s ( %s%s ) \n", omg.DenomToTokenDec(balance), cfg.Token, omg.PrettifyDenom(balance), cfg.BaseDenom)
+	fmt.Fprintf(out, "Available balance     : %10s %s ( %s%s ) \n", omg.DenomToTokenDec(balance).StringFixed(4), cfg.Token, omg.PrettifyDenom(balance), cfg.BaseDenom)
 	fmt.Fprintln(out, "----")
 	fmt.Fprintf(out, "Delegate to Validator : %s\n", valAddress)
 
@@ -165,15 +165,15 @@ func delegateAction(out io.Writer, keyring string, auto bool, all bool, remainde
 		}
 		expectedBalance = balance.Sub(amount)
 	}
-	fmt.Fprintf(out, "Delegation amount     : %s %s ( %s%s )\n", omg.DenomToTokenDec(amount).StringFixed(4), cfg.Token, omg.PrettifyDenom(amount), cfg.BaseDenom)
-	fmt.Fprintf(out, "Min remainder setting : %s %s ( %s%s )\n", omg.DenomToTokenDec(remainAmt).StringFixed(4), cfg.Token, omg.PrettifyDenom(remainAmt), cfg.BaseDenom)
+	fmt.Fprintf(out, "Delegation amount     : %10s %s ( %s%s )\n", omg.DenomToTokenDec(amount).StringFixed(4), cfg.Token, omg.PrettifyDenom(amount), cfg.BaseDenom)
+	fmt.Fprintf(out, "Min remainder setting : %10s %s ( %s%s )\n", omg.DenomToTokenDec(remainAmt).StringFixed(4), cfg.Token, omg.PrettifyDenom(remainAmt), cfg.BaseDenom)
 	if amount.IsNegative() || amount.IsZero() {
 		return fmt.Errorf("amount must be greater than zero, got %s", omg.PrettifyDenom(amount))
 	}
 	if amount.GreaterThan(balance.Sub(remainAmt)) {
 		return fmt.Errorf("insufficient balance after deducting remainder: %s %s", omg.PrettifyDenom(expectedBalance), denom)
 	}
-	fmt.Fprintf(out, "Est minimum remaining : %s %s (%s%s)\n", omg.DenomToTokenDec(expectedBalance), cfg.Token, omg.PrettifyDenom(expectedBalance), cfg.BaseDenom)
+	fmt.Fprintf(out, "Est minimum remaining : %10s %s (%s%s)\n", omg.DenomToTokenDec(expectedBalance).StringFixed(4), cfg.Token, omg.PrettifyDenom(expectedBalance), cfg.BaseDenom)
 	fmt.Fprintln(out, "----")
 	omg.TxDelegateToValidator(delegator, valAddress, amount, keyring, auto)
 

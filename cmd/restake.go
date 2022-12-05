@@ -172,7 +172,7 @@ func restakeAction(out io.Writer, auto bool, withCommission bool, keyring string
 	fmt.Fprintf(out, "Existing balance      : %10s %s ( %s%s )\n", omg.DenomToTokenDec(balanceBefore).StringFixed(4), cfg.Token, omg.PrettifyDenom(balanceBefore), denom)
 	fmt.Fprintf(out, "Unclaimed rewards     : %10s %s ( %s%s )\n", omg.DenomToTokenDec(rewards).StringFixed(4), cfg.Token, omg.PrettifyDenom(rewards), denom)
 	if withCommission {
-		fmt.Fprintf(out, "Unclaimed commissions : %10s Ts ( %s%s )\n", omg.DenomToTokenDec(commission).StringFixed(4), cfg.Token, omg.PrettifyDenom(commission))
+		fmt.Fprintf(out, "Unclaimed commissions : %10s %s ( %s%s )\n", omg.DenomToTokenDec(commission).StringFixed(4), cfg.Token, omg.PrettifyDenom(commission), denom)
 	}
 	fmt.Fprintln(out, "----")
 	if withCommission {
