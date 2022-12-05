@@ -75,7 +75,7 @@ Restake specified amount
 
 func init() {
 	txCmd.AddCommand(restakeCmd)
-	restakeCmd.Flags().StringP("commission", "c", cfg.Remainder, "Include commission if validator")
+	restakeCmd.Flags().BoolP("commission", "c", false, "Include commission if validator")
 	restakeCmd.Flags().StringP("remainder", "r", cfg.Remainder, "Remainder after restake")
 
 }
