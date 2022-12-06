@@ -49,85 +49,101 @@ Important parameters:
 omg address import                      # omg a i
 ```
 
-Import from keyring pass
+2. Import from keyring pass
 
 ```
 omg a i --keyring pass                  # omg a i -k pass
 ```
 
-2. Show addresses
+3. Show addresses
 
 ```
 omg address show                        # omg a s
 ```
 
-3. Show active validators
+4. Show active validators
 
 ```
 omg validator show                      # omg v s
 ```
 
-4. Get valoper address for validator moniker
+5. Get valoper address for validator moniker
 
 ```
 omg validator show [moniker]            # omg v s nomblocks
 ```
 
-5. Check balances (all accounts in address book)
+6. Check balances (all accounts in address book)
 
 ```
 omg balances --all                      # omg b -a
 ```
 
-6. Check rewards (all accounts in address book)
+7. Check rewards (all accounts in address book)
 
 ```
 omg rewards --all                       # omg r -a
 ```
 
-7. Withdraw all rewards
+8. Withdraw all rewards
 
 ```
 omg tx withdraw-rewards [delegator]     # omg tx wd user1
 ```
 
-8. Delegate 10nom to validator
+9. Delegate 10nom to validator
 
 ```
 omg tx delegate [delegator] [moniker] 10nom
 ```
 
-9. Delegate all to validator, leaving 1000000000000anom minimum remainder
+10. Delegate all to validator, leaving 1000000000000anom minimum remainder
 
 ```
 omg tx delegate [delegator] [moniker] --remainder 1000000000000anom
 ```
 
-10. Restake all leaving 10nom (withdraw all then delegate)
+11. Restake all leaving 10nom (withdraw all then delegate)
 ```
 omg tx restake [delegator] [moniker] --remainder 10nom
 ```
 
-11. Automatic confirm without prompt using `--yes` or `-y` flag
+12. Automatic confirm without prompt using `--yes` or `-y` flag
 
 ```
 omg tx restake [delegator] [moniker] -r 10nom -y
 ```
 
-12. Check validator commissions
+13. Check validator commissions
 
 ```
 omg validator commissions [moniker]               # omg v c nomblocks
 ```
 
-13. Withdraw commissions and rewards for validator
+14. Withdraw commissions and rewards for validator
 
 ```
 omg tx withdraw-commission [name] [moniker]       # omg tx wc validator nomblocks
 ```
 
-14. Restake commissions and self-delegate rewards for validator
+15. Restake commissions and self-delegate rewards for validator
 
 ```
 omg tx restake [validator] [validator moniker|valoper-address] --commission -r 100nom
+```
+
+16. Send from user [name] to address
+
+```
+omg tx send [name] onomy146vvft2t99hdylzqsfccuugfw3eplar7vu9t8a
+```
+
+17. Conversion tool
+
+```
+omg c 1.5nom          # Returns 1500000000000000000anom
+```
+
+```
+omg c 500_000anom     # Returns 0.0000000000005nom
 ```
