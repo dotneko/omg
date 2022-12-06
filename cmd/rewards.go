@@ -80,7 +80,7 @@ func rewardsAction(out io.Writer, allAccounts bool, detail bool, raw bool, args 
 					return err
 				}
 				if len(r.Rewards) != 0 {
-					fmt.Printf("Rewards for %s\n", acc.Alias)
+					fmt.Printf("%s:\n", acc.Alias)
 					for _, v := range r.Rewards {
 						amt, err := omg.StrToDec(v.Reward[0].Amount)
 						if err != nil {
