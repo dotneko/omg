@@ -1,6 +1,5 @@
 /*
 Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
@@ -45,7 +44,11 @@ var commissionsCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		return commissionsAction(os.Stdout, allAccounts, detail, raw, args)
+		token, err := cmd.Flags().GetBool("token")
+		if err != nil {
+			return err
+		}
+		return commissionsAction(os.Stdout, allAccounts, detail, raw, token, args)
 	},
 }
 
@@ -55,10 +58,11 @@ func init() {
 	commissionsCmd.Flags().BoolP("all", "a", false, "Check all validators")
 	commissionsCmd.Flags().BoolP("detail", "d", false, "Detailed output")
 	commissionsCmd.Flags().BoolP("raw", "r", false, "Raw output")
+	commissionsCmd.Flags().BoolP("token", "t", false, "Token amount output")
 
 }
 
-func commissionsAction(out io.Writer, allAccounts bool, detail bool, raw bool, args []string) error {
+func commissionsAction(out io.Writer, allAccounts, detail, raw, token bool, args []string) error {
 	var (
 		moniker        string = ""
 		valoperAddress string = ""
@@ -66,6 +70,8 @@ func commissionsAction(out io.Writer, allAccounts bool, detail bool, raw bool, a
 	)
 	if raw {
 		outType = omg.RAW
+	} else if token {
+		outType = omg.TOKEN
 	} else if detail {
 		outType = omg.DETAIL
 	}
@@ -93,8 +99,11 @@ func commissionsAction(out io.Writer, allAccounts bool, detail bool, raw bool, a
 			if !val.Jailed {
 				commission, err := omg.GetCommissionDec(val.OperatorAddress)
 				if err != nil {
-					fmt.Printf("Error: %12s : %s\n", val.Description.Moniker, err.Error())
+					fmt.Fprintf(out, "Error: %12s : %s\n", val.Description.Moniker, err.Error())
 					continue
+				}
+				if outType == omg.RAW || outType == omg.TOKEN {
+					fmt.Fprintf(out, "%s ", val.OperatorAddress)
 				}
 				omg.OutputAmount(out, val.Description.Moniker, val.OperatorAddress, commission, cfg.BaseDenom, outType)
 			}

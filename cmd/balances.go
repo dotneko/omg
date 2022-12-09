@@ -1,6 +1,5 @@
 /*
 Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
@@ -43,7 +42,11 @@ var balancesCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		return balancesAction(os.Stdout, allAccounts, detail, raw, args)
+		token, err := cmd.Flags().GetBool("token")
+		if err != nil {
+			return err
+		}
+		return balancesAction(os.Stdout, allAccounts, detail, raw, token, args)
 	},
 }
 
@@ -53,10 +56,11 @@ func init() {
 	balancesCmd.Flags().BoolP("all", "a", false, "Check all accounts in address book")
 	balancesCmd.Flags().BoolP("detail", "d", false, "Detailed output")
 	balancesCmd.Flags().BoolP("raw", "r", false, "Raw output")
+	balancesCmd.Flags().BoolP("token", "t", false, "Token amount output")
 
 }
 
-func balancesAction(out io.Writer, allAccounts bool, detail bool, raw bool, args []string) error {
+func balancesAction(out io.Writer, allAccounts bool, detail bool, raw bool, token bool, args []string) error {
 	l := &omg.Accounts{}
 	if err := l.Load(cfg.OmgFilepath); err != nil {
 		return err
@@ -64,6 +68,8 @@ func balancesAction(out io.Writer, allAccounts bool, detail bool, raw bool, args
 	var outType string = ""
 	if raw {
 		outType = omg.RAW
+	} else if token {
+		outType = omg.TOKEN
 	} else if detail {
 		outType = omg.DETAIL
 	}
@@ -72,8 +78,11 @@ func balancesAction(out io.Writer, allAccounts bool, detail bool, raw bool, args
 			if omg.IsNormalAddress(acc.Address) {
 				balance, err := omg.GetBalanceDec(acc.Address)
 				if err != nil {
-					fmt.Printf("Error: %20s : %s\n", acc.Alias, err.Error())
+					fmt.Fprintf(out, "Error: %20s : %s\n", acc.Alias, err.Error())
 					continue
+				}
+				if outType == omg.RAW || outType == omg.TOKEN {
+					fmt.Fprintf(out, "%s ", acc.Address)
 				}
 				omg.OutputAmount(out, acc.Alias, acc.Address, balance, cfg.BaseDenom, outType)
 			}

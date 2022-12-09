@@ -13,6 +13,7 @@ import (
 const (
 	RAW    = "raw"
 	DETAIL = "detail"
+	TOKEN  = "token"
 )
 
 // Convert denom to token (Decimal)
@@ -125,15 +126,14 @@ func PrettifyAmount(amount decimal.Decimal, denom string) string {
 }
 
 func OutputAmount(out io.Writer, name, address string, baseAmount decimal.Decimal, baseDenom, outType string) {
-	const (
-		RAW    = "raw"
-		DETAIL = "detail"
-	)
-	if outType == RAW {
-		fmt.Fprintf(out, "%s %s%s\n", address, baseAmount.String(), baseDenom)
-	} else if outType == DETAIL {
+	switch {
+	case outType == RAW:
+		fmt.Fprintf(out, "%s%s\n", baseAmount.String(), baseDenom)
+	case outType == TOKEN:
+		fmt.Fprintf(out, "%s %s\n", DenomToTokenDec(baseAmount).StringFixed(4), cfg.Token)
+	case outType == DETAIL:
 		fmt.Fprintf(out, "%s [%s]\n> %s %s (%s%s)\n", name, address, DenomToTokenDec(baseAmount).String(), cfg.Token, baseAmount.String(), baseDenom)
-	} else {
+	default:
 		fmt.Fprintf(out, "%20s : %12s %s (%s%s)\n", name, DenomToTokenDec(baseAmount).StringFixed(4), cfg.Token, PrettifyDenom(baseAmount), cfg.BaseDenom)
 	}
 }

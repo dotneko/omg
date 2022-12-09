@@ -1,6 +1,5 @@
 /*
 Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
@@ -46,7 +45,11 @@ var rewardsCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		return rewardsAction(os.Stdout, allAccounts, detail, raw, args)
+		token, err := cmd.Flags().GetBool("token")
+		if err != nil {
+			return err
+		}
+		return rewardsAction(os.Stdout, allAccounts, detail, raw, token, args)
 	},
 }
 
@@ -56,10 +59,11 @@ func init() {
 	rewardsCmd.Flags().BoolP("all", "a", false, "Check all accounts in address book")
 	rewardsCmd.Flags().BoolP("detail", "d", false, "Detailed output")
 	rewardsCmd.Flags().BoolP("raw", "r", false, "Raw output")
+	rewardsCmd.Flags().BoolP("token", "t", false, "Token amount output")
 
 }
 
-func rewardsAction(out io.Writer, allAccounts bool, detail bool, raw bool, args []string) error {
+func rewardsAction(out io.Writer, allAccounts, detail, raw, token bool, args []string) error {
 	l := &omg.Accounts{}
 
 	if err := l.Load(cfg.OmgFilepath); err != nil {
@@ -69,6 +73,8 @@ func rewardsAction(out io.Writer, allAccounts bool, detail bool, raw bool, args 
 	var outType string = ""
 	if raw {
 		outType = omg.RAW
+	} else if token {
+		outType = omg.TOKEN
 	} else if detail {
 		outType = omg.DETAIL
 	}
@@ -80,13 +86,16 @@ func rewardsAction(out io.Writer, allAccounts bool, detail bool, raw bool, args 
 					return err
 				}
 				if len(r.Rewards) != 0 && len(r.Rewards[0].Reward) != 0 {
-					fmt.Printf("%s:\n", acc.Alias)
+					fmt.Fprintf(out, "%s:\n", acc.Alias)
 					for _, v := range r.Rewards {
 						amt, err := omg.StrToDec(v.Reward[0].Amount)
 						if err != nil {
 							return err
 						}
 						moniker, valoperAddress := omg.GetValidator(v.ValidatorAddress)
+						if outType == omg.RAW || outType == omg.TOKEN {
+							fmt.Fprintf(out, "%s ", valoperAddress)
+						}
 						omg.OutputAmount(out, moniker, valoperAddress, amt, v.Reward[0].Denom, outType)
 					}
 				}
