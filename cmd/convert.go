@@ -1,6 +1,5 @@
 /*
 Copyright © 2022 dotneko <EMAIL ADDRESS>
-
 */
 package cmd
 
@@ -8,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	omg "github.com/dotneko/omg/app"
 	cfg "github.com/dotneko/omg/config"
@@ -32,7 +32,8 @@ var (
 				return fmt.Errorf("expecting [amount][denom]")
 			}
 			if len(args) == 2 {
-				if args[1] != cfg.BaseDenom && args[1] != cfg.Token {
+				denomStr := strings.ToLower(args[1])
+				if denomStr != cfg.BaseDenom && denomStr != cfg.Token {
 					return fmt.Errorf("denom must be %q or %q", cfg.BaseDenom, cfg.Token)
 				}
 			}

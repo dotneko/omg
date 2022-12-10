@@ -58,6 +58,7 @@ func StrSplitAmountDenomDec(amtstr string) (decimal.Decimal, string, error) {
 		return decimal.NewFromInt(0), "", err
 	}
 	denom := AlphaRegex.ReplaceAllString(amtstr, "")
+	denom = strings.ToLower(denom)
 	if denom != cfg.BaseDenom && denom != cfg.Token {
 		return decimal.NewFromInt(0), "", fmt.Errorf("denom must be %q or %q", cfg.BaseDenom, cfg.Token)
 	}
