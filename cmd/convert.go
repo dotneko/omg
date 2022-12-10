@@ -33,7 +33,7 @@ var (
 			}
 			if len(args) == 2 {
 				denomStr := strings.ToLower(args[1])
-				if denomStr != cfg.BaseDenom && denomStr != cfg.Token {
+				if denomStr != cfg.BaseDenom && denomStr != strings.ToLower(cfg.Token) {
 					return fmt.Errorf("denom must be %q or %q", cfg.BaseDenom, cfg.Token)
 				}
 			}
