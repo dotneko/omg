@@ -266,7 +266,7 @@ func restakeAction(out io.Writer, auto bool, keyring, outType, remainder string,
 		return err
 	}
 	if outType == omg.HASH {
-		fmt.Fprintf(out, "Withdraw hash: %s", delegtxhash)
+		fmt.Fprintf(out, "Delegate hash: %s", delegtxhash)
 	}
 	return nil
 }

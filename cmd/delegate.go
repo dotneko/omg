@@ -182,7 +182,7 @@ func delegateAction(out io.Writer, auto bool, keyring, outType, remainder string
 		return err
 	}
 	if outType == omg.HASH {
-		fmt.Fprintf(out, "Withdraw hash: %s", txhash)
+		fmt.Fprintln(out, txhash)
 	}
 	return nil
 }
