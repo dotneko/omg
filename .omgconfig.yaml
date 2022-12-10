@@ -9,7 +9,7 @@ chain:
   address_prefix: 'onomy'
   valoper_prefix: 'onomyvaloper'
   base_denom: 'anom'
-  token: 'nom'
+  token: 'NOM'
   decimals: 18
 
 options:
