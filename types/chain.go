@@ -38,3 +38,12 @@ type KeyStruct struct {
 	Address string `json:"address"`
 	Pubkey  string `json:"pubkey"`
 }
+
+type DelegationQuery struct {
+	Delegation struct {
+		DelegatorAddress string `json:"delegator_address"`
+		ValidatorAddress string `json:"validator_address"`
+		Shares           string `json:"shares"`
+	}
+	Balance DenomAmount
+}

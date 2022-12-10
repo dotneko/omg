@@ -198,3 +198,42 @@ func GetCommissionDec(valopAddress string) (decimal.Decimal, error) {
 	}
 	return amt, nil
 }
+
+// Query delegation
+func QueryDelegation(address, valopAddress string) (*types.DelegationQuery, error) {
+
+	cmdStr := fmt.Sprintf("query staking delegation %s %s %s", address, valopAddress, jsonFlag)
+	out, err := exec.Command(cfg.Daemon, strings.Split(cmdStr, " ")...).Output()
+	if err != nil {
+		return nil, err
+	}
+	if !json.Valid(out) {
+		return nil, fmt.Errorf("invalid json")
+	}
+	var d types.DelegationQuery
+	if err = json.Unmarshal(out, &d); err != nil {
+		return nil, err
+	}
+	return &d, nil
+}
+
+// Get Delegation Amount
+func GetDelegationAmountShares(address, valopAddress string) (decimal.Decimal, decimal.Decimal, error) {
+
+	dQ, err := QueryDelegation(address, valopAddress)
+	if err != nil {
+		return decimal.NewFromInt(-1), decimal.NewFromInt(-1), err
+	}
+	if dQ.Balance.Amount == "" || dQ.Delegation.Shares == "" {
+		return decimal.NewFromInt(-0), decimal.NewFromInt(0), fmt.Errorf("no delegation found")
+	}
+	amt, err := decimal.NewFromString(dQ.Balance.Amount)
+	if err != nil {
+		return decimal.NewFromInt(-1), decimal.NewFromInt(-1), err
+	}
+	shares, err := decimal.NewFromString(dQ.Delegation.Shares)
+	if err != nil {
+		return decimal.NewFromInt(-1), decimal.NewFromInt(-1), err
+	}
+	return amt, shares, nil
+}
