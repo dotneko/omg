@@ -14,6 +14,7 @@ const (
 	RAW    = "raw"
 	DETAIL = "detail"
 	HASH   = "hash"
+	SHARES = "shares"
 	TOKEN  = "token"
 )
 
@@ -131,7 +132,7 @@ func OutputAmount(out io.Writer, name, address string, baseAmount decimal.Decima
 	case outType == RAW:
 		fmt.Fprintf(out, "%s%s\n", baseAmount.String(), baseDenom)
 	case outType == TOKEN:
-		fmt.Fprintf(out, "%s %s\n", DenomToTokenDec(baseAmount).StringFixed(4), cfg.Token)
+		fmt.Fprintf(out, "%s %s\n", DenomToTokenDec(baseAmount).StringFixed(18), cfg.Token)
 	case outType == DETAIL:
 		fmt.Fprintf(out, "%s [%s]\n> %s %s (%s%s)\n", name, address, DenomToTokenDec(baseAmount).String(), cfg.Token, baseAmount.String(), baseDenom)
 	default:
