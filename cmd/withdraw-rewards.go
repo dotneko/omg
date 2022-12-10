@@ -1,6 +1,5 @@
 /*
 Copyright © 2022 dotneko
-
 */
 package cmd
 
@@ -31,15 +30,24 @@ var wdrewardsCmd = &cobra.Command{
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		keyring, err := cmd.Flags().GetString("keyring")
-		if err != nil {
-			return err
-		}
 		auto, err := cmd.Flags().GetBool("yes")
 		if err != nil {
 			return err
 		}
-		return wdrewardsAction(os.Stdout, keyring, auto, args)
+		keyring, err := cmd.Flags().GetString("keyring")
+		if err != nil {
+			return err
+		}
+		hash, err := cmd.Flags().GetBool("txhash")
+		if err != nil {
+			return err
+		}
+		var outType string = ""
+		if hash {
+			outType = omg.HASH
+		}
+
+		return wdrewardsAction(os.Stdout, auto, keyring, outType, args)
 	},
 }
 
@@ -48,7 +56,7 @@ func init() {
 
 }
 
-func wdrewardsAction(out io.Writer, keyring string, auto bool, args []string) error {
+func wdrewardsAction(out io.Writer, auto bool, keyring, outType string, args []string) error {
 
 	delegator := args[0]
 	l := &omg.Accounts{}
@@ -65,9 +73,12 @@ func wdrewardsAction(out io.Writer, keyring string, auto bool, args []string) er
 	if delegatorAddress != "" && delegatorAddress != omg.QueryKeyringAddress(delegator, keyring) {
 		return fmt.Errorf("delegator/address not in keyring")
 	}
-	err := omg.TxWithdrawRewards(out, delegator, keyring, auto)
+	txhash, err := omg.TxWithdrawRewards(out, delegator, auto, keyring, outType)
 	if err != nil {
 		return err
+	}
+	if outType == omg.HASH && txhash != "" {
+		fmt.Fprintln(out, txhash)
 	}
 	return nil
 }

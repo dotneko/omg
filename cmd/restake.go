@@ -1,6 +1,5 @@
 /*
 Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
@@ -53,13 +52,21 @@ Restake specified amount
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
+		auto, err := cmd.Flags().GetBool("yes")
+		if err != nil {
+			return err
+		}
 		keyring, err := cmd.Flags().GetString("keyring")
 		if err != nil {
 			return err
 		}
-		auto, err := cmd.Flags().GetBool("yes")
+		hash, err := cmd.Flags().GetBool("txhash")
 		if err != nil {
 			return err
+		}
+		var outType string = ""
+		if hash {
+			outType = omg.HASH
 		}
 		withCommission, err := cmd.Flags().GetBool("commission")
 		if err != nil {
@@ -69,7 +76,7 @@ Restake specified amount
 		if err != nil {
 			return err
 		}
-		return restakeAction(os.Stdout, auto, withCommission, keyring, remainder, args)
+		return restakeAction(os.Stdout, auto, keyring, outType, remainder, withCommission, args)
 	},
 }
 
@@ -80,7 +87,7 @@ func init() {
 
 }
 
-func restakeAction(out io.Writer, auto bool, withCommission bool, keyring string, remainder string, args []string) error {
+func restakeAction(out io.Writer, auto bool, keyring, outType, remainder string, withCommission bool, args []string) error {
 	// Ensure all arguments provided
 
 	delegator := args[0]
@@ -97,6 +104,8 @@ func restakeAction(out io.Writer, auto bool, withCommission bool, keyring string
 		rewards          decimal.Decimal
 		commission       decimal.Decimal
 		expectedBalance  decimal.Decimal
+		wdtxhash         string
+		delegtxhash      string
 	)
 
 	l := &omg.Accounts{}
@@ -167,28 +176,41 @@ func restakeAction(out io.Writer, auto bool, withCommission bool, keyring string
 	if err != nil {
 		return err
 	}
-
-	fmt.Fprintf(out, "Delegator             : %s [%s]\n", delegator, delegatorAddress)
-	fmt.Fprintf(out, "Existing balance      : %10s %s ( %s%s )\n", omg.DenomToTokenDec(balanceBefore).StringFixed(4), cfg.Token, omg.PrettifyDenom(balanceBefore), denom)
-	fmt.Fprintf(out, "Unclaimed rewards     : %10s %s ( %s%s )\n", omg.DenomToTokenDec(rewards).StringFixed(4), cfg.Token, omg.PrettifyDenom(rewards), denom)
-	if withCommission {
-		fmt.Fprintf(out, "Unclaimed commissions : %10s %s ( %s%s )\n", omg.DenomToTokenDec(commission).StringFixed(4), cfg.Token, omg.PrettifyDenom(commission), denom)
+	if outType != omg.HASH {
+		fmt.Fprintf(out, "Delegator             : %s [%s]\n", delegator, delegatorAddress)
+		fmt.Fprintf(out, "Existing balance      : %10s %s ( %s%s )\n", omg.DenomToTokenDec(balanceBefore).StringFixed(4), cfg.Token, omg.PrettifyDenom(balanceBefore), denom)
+		fmt.Fprintf(out, "Unclaimed rewards     : %10s %s ( %s%s )\n", omg.DenomToTokenDec(rewards).StringFixed(4), cfg.Token, omg.PrettifyDenom(rewards), denom)
+		if withCommission {
+			fmt.Fprintf(out, "Unclaimed commissions : %10s %s ( %s%s )\n", omg.DenomToTokenDec(commission).StringFixed(4), cfg.Token, omg.PrettifyDenom(commission), denom)
+			fmt.Fprintf(out, "----\n")
+		}
 	}
-	fmt.Fprintln(out, "----")
 	if withCommission {
-		fmt.Fprintf(out, "Withdrawing rewards plus commission...\n")
-		omg.TxWithdrawValidatorCommission(out, delegator, valoperAddress, keyring, auto)
+		if outType != omg.HASH {
+			fmt.Fprintf(out, "Withdrawing rewards plus commission...\n")
+		}
+		wdtxhash, err = omg.TxWithdrawValidatorCommission(out, delegator, valoperAddress, auto, keyring, outType)
+		if err != nil {
+			return err
+		}
 	} else {
-		fmt.Fprintf(out, "Withdrawing rewards...\n")
-		omg.TxWithdrawRewards(out, delegator, keyring, auto)
+		if outType != omg.HASH {
+			fmt.Fprintf(out, "Withdrawing rewards...\n")
+		}
+		wdtxhash, err = omg.TxWithdrawRewards(out, delegator, auto, keyring, outType)
+		if err != nil {
+			return err
+		}
 	}
-
+	if outType == omg.HASH {
+		fmt.Fprintf(out, "Withdraw hash: %s", wdtxhash)
+	}
 	// Wait till balance is updated
 	var balance decimal.Decimal
 	count := 0
 	for count <= 10 {
 		balance, _ = omg.GetBalanceDec(delegatorAddress)
-		if balance.GreaterThan(balanceBefore) {
+		if balance.GreaterThan(balanceBefore) && outType != omg.HASH {
 			fmt.Fprintf(out, "...updated balance.\n")
 			break
 		}
@@ -223,20 +245,28 @@ func restakeAction(out io.Writer, auto bool, withCommission bool, keyring string
 		}
 		expectedBalance = balance.Sub(amount)
 	}
-	fmt.Fprintln(out, "----")
-	fmt.Fprintf(out, "Delegate to Validator : %s\n", valoperAddress)
-	fmt.Fprintf(out, "Available balance     : %10s %s ( %s%s )\n", omg.DenomToTokenDec(balance).StringFixed(4), cfg.Token, omg.PrettifyDenom(balance), cfg.BaseDenom)
-	fmt.Fprintf(out, "Delegation amount     : %10s %s ( %s%s )\n", omg.DenomToTokenDec(amount).StringFixed(4), cfg.Token, omg.PrettifyDenom(amount), cfg.BaseDenom)
-	fmt.Fprintf(out, "Min remainder setting : %10s %s ( %s%s )\n", omg.DenomToTokenDec(remainAmt).StringFixed(4), cfg.Token, omg.PrettifyDenom(remainAmt), cfg.BaseDenom)
 	if amount.IsNegative() || amount.IsZero() {
 		return fmt.Errorf("amount must be greater than zero, got %s", omg.PrettifyDenom(amount))
 	}
 	if amount.GreaterThan(balance.Sub(remainAmt)) {
 		return fmt.Errorf("insufficient balance after deducting remainder: %s %s", omg.PrettifyDenom(expectedBalance), denom)
 	}
-	fmt.Fprintf(out, "Est minimum remaining : %10s %s ( %s%s )\n", omg.DenomToTokenDec(expectedBalance).StringFixed(4), cfg.Token, omg.PrettifyDenom(expectedBalance), cfg.BaseDenom)
-	fmt.Fprintln(out, "----")
+	if outType != omg.HASH {
+		fmt.Fprintf(out, "----\n")
+		fmt.Fprintf(out, "Delegate to Validator : %s\n", valoperAddress)
+		fmt.Fprintf(out, "Available balance     : %10s %s ( %s%s )\n", omg.DenomToTokenDec(balance).StringFixed(4), cfg.Token, omg.PrettifyDenom(balance), cfg.BaseDenom)
+		fmt.Fprintf(out, "Delegation amount     : %10s %s ( %s%s )\n", omg.DenomToTokenDec(amount).StringFixed(4), cfg.Token, omg.PrettifyDenom(amount), cfg.BaseDenom)
+		fmt.Fprintf(out, "Min remainder setting : %10s %s ( %s%s )\n", omg.DenomToTokenDec(remainAmt).StringFixed(4), cfg.Token, omg.PrettifyDenom(remainAmt), cfg.BaseDenom)
+		fmt.Fprintf(out, "Est minimum remaining : %10s %s ( %s%s )\n", omg.DenomToTokenDec(expectedBalance).StringFixed(4), cfg.Token, omg.PrettifyDenom(expectedBalance), cfg.BaseDenom)
+		fmt.Fprint(out, "----\n")
+	}
 
-	omg.TxDelegateToValidator(delegator, valoperAddress, amount, keyring, auto)
+	delegtxhash, err = omg.TxDelegateToValidator(out, delegator, valoperAddress, amount, auto, keyring, outType)
+	if err != nil {
+		return err
+	}
+	if outType == omg.HASH {
+		fmt.Fprintf(out, "Withdraw hash: %s", delegtxhash)
+	}
 	return nil
 }

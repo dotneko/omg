@@ -1,6 +1,5 @@
 /*
 Copyright © 2022 dotneko
-
 */
 package cmd
 
@@ -31,15 +30,23 @@ var wdCommissionCmd = &cobra.Command{
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		keyring, err := cmd.Flags().GetString("keyring")
-		if err != nil {
-			return err
-		}
 		auto, err := cmd.Flags().GetBool("yes")
 		if err != nil {
 			return err
 		}
-		return wdCommissionAction(os.Stdout, keyring, auto, args)
+		keyring, err := cmd.Flags().GetString("keyring")
+		if err != nil {
+			return err
+		}
+		hash, err := cmd.Flags().GetBool("txhash")
+		if err != nil {
+			return err
+		}
+		var outType string = ""
+		if hash {
+			outType = omg.HASH
+		}
+		return wdCommissionAction(os.Stdout, auto, keyring, outType, args)
 	},
 }
 
@@ -48,7 +55,7 @@ func init() {
 
 }
 
-func wdCommissionAction(out io.Writer, keyring string, auto bool, args []string) error {
+func wdCommissionAction(out io.Writer, auto bool, keyring, outType string, args []string) error {
 	var (
 		delegator        string = ""
 		delegatorAddress string = ""
@@ -77,9 +84,15 @@ func wdCommissionAction(out io.Writer, keyring string, auto bool, args []string)
 	if valoperAddress == "" {
 		return fmt.Errorf("%s is not a valid moniker/valoper-address", args[1])
 	}
-	err := omg.TxWithdrawValidatorCommission(out, delegator, valoperAddress, keyring, auto)
+	txhash, err := omg.TxWithdrawValidatorCommission(out, delegator, valoperAddress, auto, keyring, outType)
 	if err != nil {
 		return err
+	}
+	if err != nil {
+		return err
+	}
+	if outType == omg.HASH && txhash != "" {
+		fmt.Fprintln(out, txhash)
 	}
 	return nil
 }

@@ -1,6 +1,5 @@
 /*
 Copyright © 2022 dotneko
-
 */
 package cmd
 
@@ -64,11 +63,19 @@ Delegate full balance and specify remainder:
 		if err != nil {
 			return err
 		}
+		hash, err := cmd.Flags().GetBool("txhash")
+		if err != nil {
+			return err
+		}
+		var outType string = ""
+		if hash {
+			outType = omg.HASH
+		}
 		remainder, err := cmd.Flags().GetString("remainder")
 		if err != nil {
 			return err
 		}
-		return delegateAction(os.Stdout, keyring, auto, remainder, args)
+		return delegateAction(os.Stdout, auto, keyring, outType, remainder, args)
 	},
 }
 
@@ -80,7 +87,7 @@ func init() {
 
 }
 
-func delegateAction(out io.Writer, keyring string, auto bool, remainder string, args []string) error {
+func delegateAction(out io.Writer, auto bool, keyring, outType, remainder string, args []string) error {
 
 	delegator := args[0]
 	validator := args[1]
@@ -121,19 +128,14 @@ func delegateAction(out io.Writer, keyring string, auto bool, remainder string, 
 			valoperMoniker, valAddress = omg.GetValidator(searchMoniker)
 			if valoperMoniker == "" {
 				return fmt.Errorf("no validator matching %s found", validator)
-			} else {
-				fmt.Fprintf(out, "Found active validator %s [%s]\n----\n", valoperMoniker, valAddress)
 			}
 		}
 	}
-	fmt.Fprintf(out, "Delegator             : %s [%s]\n", delegator, delegatorAddress)
+	// Check balance
 	balance, err := omg.GetBalanceDec(delegatorAddress)
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(out, "Available balance     : %10s %s ( %s%s ) \n", omg.DenomToTokenDec(balance).StringFixed(4), cfg.Token, omg.PrettifyDenom(balance), cfg.BaseDenom)
-	fmt.Fprintln(out, "----")
-	fmt.Fprintf(out, "Delegate to Validator : %s\n", valAddress)
 
 	// Parse remainder
 	remainAmt, remainDenom, err = omg.StrSplitAmountDenomDec(remainder)
@@ -159,17 +161,23 @@ func delegateAction(out io.Writer, keyring string, auto bool, remainder string, 
 		}
 		expectedBalance = balance.Sub(amount)
 	}
-	fmt.Fprintf(out, "Delegation amount     : %10s %s ( %s%s )\n", omg.DenomToTokenDec(amount).StringFixed(4), cfg.Token, omg.PrettifyDenom(amount), cfg.BaseDenom)
-	fmt.Fprintf(out, "Min remainder setting : %10s %s ( %s%s )\n", omg.DenomToTokenDec(remainAmt).StringFixed(4), cfg.Token, omg.PrettifyDenom(remainAmt), cfg.BaseDenom)
 	if amount.IsNegative() || amount.IsZero() {
 		return fmt.Errorf("amount must be greater than zero, got %s", omg.PrettifyDenom(amount))
 	}
 	if amount.GreaterThan(balance.Sub(remainAmt)) {
 		return fmt.Errorf("insufficient balance after deducting remainder: %s %s", omg.PrettifyDenom(expectedBalance), denom)
 	}
-	fmt.Fprintf(out, "Est minimum remaining : %10s %s (%s%s)\n", omg.DenomToTokenDec(expectedBalance).StringFixed(4), cfg.Token, omg.PrettifyDenom(expectedBalance), cfg.BaseDenom)
-	fmt.Fprintln(out, "----")
-	omg.TxDelegateToValidator(delegator, valAddress, amount, keyring, auto)
+	if outType != omg.HASH {
+		fmt.Fprintf(out, "Delegator             : %s [%s]\n", delegator, delegatorAddress)
+		fmt.Fprintf(out, "Available balance     : %10s %s ( %s%s ) \n", omg.DenomToTokenDec(balance).StringFixed(4), cfg.Token, omg.PrettifyDenom(balance), cfg.BaseDenom)
+		fmt.Fprintf(out, "----\n")
+		fmt.Fprintf(out, "Delegate to Validator : %s\n", valAddress)
+		fmt.Fprintf(out, "Delegation amount     : %10s %s ( %s%s )\n", omg.DenomToTokenDec(amount).StringFixed(4), cfg.Token, omg.PrettifyDenom(amount), cfg.BaseDenom)
+		fmt.Fprintf(out, "Min remainder setting : %10s %s ( %s%s )\n", omg.DenomToTokenDec(remainAmt).StringFixed(4), cfg.Token, omg.PrettifyDenom(remainAmt), cfg.BaseDenom)
+		fmt.Fprintf(out, "Est minimum remaining : %10s %s (%s%s)\n", omg.DenomToTokenDec(expectedBalance).StringFixed(4), cfg.Token, omg.PrettifyDenom(expectedBalance), cfg.BaseDenom)
+		fmt.Fprintf(out, "----\n")
+	}
+	omg.TxDelegateToValidator(out, delegator, valAddress, amount, auto, keyring, outType)
 
 	return nil
 }

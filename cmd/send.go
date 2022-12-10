@@ -1,6 +1,5 @@
 /*
 Copyright © 2022 dotneko
-
 */
 package cmd
 
@@ -41,7 +40,15 @@ var sendCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		return sendAction(os.Stdout, auto, keyring, args)
+		hash, err := cmd.Flags().GetBool("txhash")
+		if err != nil {
+			return err
+		}
+		var outType string = ""
+		if hash {
+			outType = omg.HASH
+		}
+		return sendAction(os.Stdout, auto, keyring, outType, args)
 	},
 }
 
@@ -50,7 +57,7 @@ func init() {
 
 }
 
-func sendAction(out io.Writer, auto bool, keyring string, args []string) error {
+func sendAction(out io.Writer, auto bool, keyring, outType string, args []string) error {
 	var (
 		from        string
 		to          string
@@ -107,23 +114,28 @@ func sendAction(out io.Writer, auto bool, keyring string, args []string) error {
 	if err != nil {
 		return fmt.Errorf("error querying balance for %s", from)
 	}
-	// Check balance for sender
-	if to == toAddress {
-		fmt.Fprintf(out, "To                : %s\n", toAddress)
-	} else {
-		fmt.Fprintf(out, "To                : %s [%s]\n", to, toAddress)
+	// Display transaction summary
+	if outType != omg.HASH {
+		if to == toAddress {
+			fmt.Fprintf(out, "To                : %s\n", toAddress)
+		} else {
+			fmt.Fprintf(out, "To                : %s [%s]\n", to, toAddress)
+		}
+		fmt.Fprintf(out, "From              : %s [%s]\n", from, fromAddress)
+		fmt.Fprintf(out, "Available balance : %s\n", omg.PrettifyAmount(balance, denom))
+		fmt.Fprintf(out, "Amount requested  : %s\n", omg.PrettifyAmount(amount, denom))
+		fmt.Fprintln(out, "----")
 	}
-	fmt.Fprintf(out, "From              : %s [%s]\n", from, fromAddress)
-	fmt.Fprintf(out, "Available balance : %s\n", omg.PrettifyAmount(balance, denom))
-	fmt.Fprintf(out, "Amount requested  : %s\n", omg.PrettifyAmount(amount, denom))
-	fmt.Fprintln(out, "----")
 
 	if amount.GreaterThan(balance) {
 		return fmt.Errorf("insufficient balance for send amount")
 	}
-	err = omg.TxSend(fromAddress, toAddress, amount, keyring, auto)
+	txhash, err := omg.TxSend(out, fromAddress, toAddress, amount, auto, keyring, outType)
 	if err != nil {
 		return err
+	}
+	if outType == omg.HASH && txhash != "" {
+		fmt.Fprintln(out, txhash)
 	}
 	return nil
 }

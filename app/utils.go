@@ -13,6 +13,7 @@ import (
 const (
 	RAW    = "raw"
 	DETAIL = "detail"
+	HASH   = "hash"
 	TOKEN  = "token"
 )
 
