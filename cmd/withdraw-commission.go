@@ -88,9 +88,6 @@ func wdCommissionAction(out io.Writer, auto bool, keyring, outType string, args 
 	if err != nil {
 		return err
 	}
-	if err != nil {
-		return err
-	}
 	if outType == omg.HASH && txhash != "" {
 		fmt.Fprintln(out, txhash)
 	}

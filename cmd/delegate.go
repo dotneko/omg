@@ -177,7 +177,12 @@ func delegateAction(out io.Writer, auto bool, keyring, outType, remainder string
 		fmt.Fprintf(out, "Est minimum remaining : %10s %s (%s%s)\n", omg.DenomToTokenDec(expectedBalance).StringFixed(4), cfg.Token, omg.PrettifyDenom(expectedBalance), cfg.BaseDenom)
 		fmt.Fprintf(out, "----\n")
 	}
-	omg.TxDelegateToValidator(out, delegator, valAddress, amount, auto, keyring, outType)
-
+	txhash, err := omg.TxDelegateToValidator(out, delegator, valAddress, amount, auto, keyring, outType)
+	if err != nil {
+		return err
+	}
+	if outType == omg.HASH {
+		fmt.Fprintf(out, "Withdraw hash: %s", txhash)
+	}
 	return nil
 }
