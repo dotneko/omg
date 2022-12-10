@@ -16,7 +16,7 @@ import (
 
 // balancesCmd represents the balances command
 var balancesCmd = &cobra.Command{
-	Aliases: []string{"bal", "b"},
+	Aliases: []string{"balance", "bal", "b"},
 	Use:     "balances [name|address]",
 	Short:   "Query balances for an account or address",
 	Long:    `Query balances for an account or address.`,
