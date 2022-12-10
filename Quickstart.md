@@ -147,3 +147,9 @@ omg c 1.5nom          # Returns 1500000000000000000anom
 ```
 omg c 500_000anom     # Returns 0.0000000000005nom
 ```
+
+18. Query delegator bonded amount and shares
+
+```
+omg delegation [name] [moniker]                   # omg dlg validator nomblocks
+```

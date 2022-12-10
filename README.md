@@ -98,15 +98,22 @@ omg validator commissions [moniker|valoper-address]
 
 ### Queries
 
+##### Balance
+
 Check balances for *user1*
 ```
 omg balances user1
 ```
 
+> N.B. Amounts displayed use the underscore `_` separator for easier reading. For amounts with a long string of digits after the decimal point (commonly when checking rewards), the digits will be truncated and shown as `._`
+
+##### Rewards
 Check rewards for *user1*
 ```
 omg rewards user1
 ```
+
+##### Useful flags
 
 The `--all` or `-a` flag can be used to query all accounts in the address book.
 
@@ -118,14 +125,19 @@ omg balances -a
 omg rewards --all
 ```
 
-> N.B. Amounts displayed use the underscore `_` separator for easier reading. For amounts with a long string of digits after the decimal point (commonly when checking rewards), the digits will be truncated and shown as `._`
-
 Raw amounts can be displayed by the `--raw` or `-r` flag.
+
 ```
-omg balances -a -raw
+omg balance -a -raw
 ```
 
 Detailed amounts can be displayed using the `--detail` or `-d` flag.
+
+### Query Delegation (Bonded) Amounts
+
+```
+omg delegation [name] [moniker|valoper-address]
+```
 
 ### Transactions
 
