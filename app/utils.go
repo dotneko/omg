@@ -42,6 +42,7 @@ func ConvertDecDenom(amount decimal.Decimal, denom string) (decimal.Decimal, str
 		convAmount = TokenToDenomDec(amount)
 		convDenom = cfg.BaseDenom
 	} else {
+		fmt.Printf("Error: unrecognized denom - %q", denom)
 		return decimal.NewFromInt(-1), ""
 	}
 	return convAmount, convDenom
