@@ -128,7 +128,7 @@ func PrettifyAmount(amount decimal.Decimal, denom string) string {
 }
 
 func OutputAmount(out io.Writer, name, address string, baseAmount decimal.Decimal, baseDenom, outType string) {
-	if strings.EqualFold(baseDenom, cfg.BaseDenom) {
+	if !strings.EqualFold(baseDenom, cfg.BaseDenom) {
 		fmt.Fprintf(out, "Warning: unexpected base denom: %q, expected %q", baseDenom, cfg.BaseDenom)
 	}
 	switch {
