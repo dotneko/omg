@@ -32,8 +32,8 @@ var (
 				return fmt.Errorf("expecting [amount][denom]")
 			}
 			if len(args) == 2 {
-				denomStr := strings.ToLower(args[1])
-				if denomStr != cfg.BaseDenom && denomStr != strings.ToLower(cfg.Token) {
+				denom := args[1]
+				if !strings.EqualFold(denom, cfg.BaseDenom) && !strings.EqualFold(denom, cfg.Token) {
 					return fmt.Errorf("denom must be %q or %q", cfg.BaseDenom, cfg.Token)
 				}
 			}

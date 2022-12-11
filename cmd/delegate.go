@@ -142,7 +142,7 @@ func delegateAction(out io.Writer, auto bool, keyring, outType, remainder string
 	if err != nil {
 		return err
 	}
-	if remainDenom == cfg.Token {
+	if strings.EqualFold(remainDenom, cfg.Token) {
 		remainAmt, _ = omg.ConvertDecDenom(remainAmt, remainDenom)
 	}
 	if len(args) < 3 {
@@ -156,7 +156,7 @@ func delegateAction(out io.Writer, auto bool, keyring, outType, remainder string
 			return err
 		}
 		// Convert to baseDenom if denominated in Token
-		if denom == cfg.Token {
+		if strings.EqualFold(denom, cfg.Token) {
 			amount, denom = omg.ConvertDecDenom(amount, denom)
 		}
 		expectedBalance = balance.Sub(amount)

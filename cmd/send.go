@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	omg "github.com/dotneko/omg/app"
 	cfg "github.com/dotneko/omg/config"
@@ -103,7 +104,7 @@ func sendAction(out io.Writer, auto bool, keyring, outType string, args []string
 	}
 	// Parse amount
 	amount, denom, err = omg.StrSplitAmountDenomDec(args[2])
-	if denom == cfg.Token {
+	if strings.EqualFold(denom, cfg.Token) {
 		amount, denom = omg.ConvertDecDenom(amount, denom)
 	}
 	if err != nil {

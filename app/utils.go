@@ -35,10 +35,10 @@ func ConvertDecDenom(amount decimal.Decimal, denom string) (decimal.Decimal, str
 		convAmount decimal.Decimal
 		convDenom  string
 	)
-	if denom == cfg.BaseDenom {
+	if strings.EqualFold(denom, cfg.BaseDenom) {
 		convAmount = DenomToTokenDec(amount)
 		convDenom = cfg.Token
-	} else if denom == cfg.Token {
+	} else if strings.EqualFold(denom, cfg.Token) {
 		convAmount = TokenToDenomDec(amount)
 		convDenom = cfg.BaseDenom
 	} else {
@@ -58,8 +58,7 @@ func StrSplitAmountDenomDec(amtstr string) (decimal.Decimal, string, error) {
 		return decimal.NewFromInt(0), "", err
 	}
 	denom := AlphaRegex.ReplaceAllString(amtstr, "")
-	denom = strings.ToLower(denom)
-	if denom != cfg.BaseDenom && denom != strings.ToLower(cfg.Token) {
+	if !strings.EqualFold(denom, cfg.BaseDenom) && !strings.EqualFold(denom, cfg.Token) {
 		return decimal.NewFromInt(0), "", fmt.Errorf("denom must be %q or %q, got %q", cfg.BaseDenom, cfg.Token, denom)
 	}
 	return amt, denom, nil
@@ -119,16 +118,19 @@ func PrettifyDenom(amt decimal.Decimal) string {
 }
 
 func PrettifyAmount(amount decimal.Decimal, denom string) string {
-	if denom == cfg.BaseDenom {
+	if strings.EqualFold(denom, cfg.BaseDenom) {
 		return fmt.Sprintf("%s %s", PrettifyDenom(amount), denom)
 	}
-	if denom == cfg.Token {
+	if strings.EqualFold(denom, cfg.Token) {
 		return fmt.Sprintf("%s %s", amount.String(), denom)
 	}
 	return ""
 }
 
 func OutputAmount(out io.Writer, name, address string, baseAmount decimal.Decimal, baseDenom, outType string) {
+	if strings.EqualFold(baseDenom, cfg.BaseDenom) {
+		fmt.Fprintf(out, "Warning: unexpected base denom: %q, expected %q", baseDenom, cfg.BaseDenom)
+	}
 	switch {
 	case outType == RAW:
 		fmt.Fprintf(out, "%s%s\n", baseAmount.String(), baseDenom)
