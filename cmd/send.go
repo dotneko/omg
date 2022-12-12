@@ -105,7 +105,9 @@ func sendAction(out io.Writer, auto bool, keyring, outType string, args []string
 	// Parse amount
 	amount, denom, err = omg.StrSplitAmountDenomDec(args[2])
 	if strings.EqualFold(denom, cfg.Token) {
-		amount, denom = omg.ConvertDecDenom(amount, denom)
+		amount, _ = omg.ConvertDecDenom(amount, denom)
+	} else if !strings.EqualFold(denom, cfg.BaseDenom) {
+		return fmt.Errorf("unexpected denom, aborting")
 	}
 	if err != nil {
 		return err
@@ -123,9 +125,9 @@ func sendAction(out io.Writer, auto bool, keyring, outType string, args []string
 			fmt.Fprintf(out, "To                : %s [%s]\n", to, toAddress)
 		}
 		fmt.Fprintf(out, "From              : %s [%s]\n", from, fromAddress)
-		fmt.Fprintf(out, "Available balance : %s\n", omg.PrettifyAmount(balance, denom))
-		fmt.Fprintf(out, "Amount requested  : %s\n", omg.PrettifyAmount(amount, denom))
-		fmt.Fprintln(out, "----")
+		fmt.Fprintf(out, "Available balance : %s %s ( %s%s )\n", omg.DenomToTokenDec(balance).StringFixed(4), cfg.Token, omg.PrettifyDenom(balance), cfg.BaseDenom)
+		fmt.Fprintf(out, "Amount requested  : %s %s ( %s%s )\n", omg.DenomToTokenDec(amount).StringFixed(4), cfg.Token, omg.PrettifyDenom(amount), cfg.BaseDenom)
+		fmt.Fprintf(out, "----\n")
 	}
 
 	if amount.GreaterThan(balance) {
