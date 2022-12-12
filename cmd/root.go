@@ -1,6 +1,5 @@
 /*
 Copyright © 2022 dotneko
-
 */
 package cmd
 
@@ -12,7 +11,7 @@ import (
 
 // rootCmd represents the base command when called without any subcommands
 var (
-	version string = "0.3.5"
+	version string = "0.3.6"
 	rootCmd        = &cobra.Command{
 		Use:          "omg",
 		Short:        "Convenience wrapper for the Onomy Protocol",
