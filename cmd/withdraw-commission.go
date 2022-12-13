@@ -18,7 +18,7 @@ var wdCommissionCmd = &cobra.Command{
 	Aliases: []string{"commission", "wvc", "wc"},
 	Use:     "withdraw-commission [name] [moniker|valoper-address]",
 	Short:   "Withdraw commissions and rewards for validator",
-	Long:    `Withdraw commissions and rewards for validator. Assumes the `,
+	Long:    `Withdraw commissions and rewards for validator.`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
 			cmd.Help()

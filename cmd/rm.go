@@ -1,6 +1,5 @@
 /*
 Copyright © 2022 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
@@ -22,7 +21,7 @@ var rmCmd = &cobra.Command{
 	Aliases: []string{"remove", "delete", "r"},
 	Use:     "rm [name]",
 	Short:   "Delete an address book entry",
-	Long: `Delete an address book entry
+	Long: `Delete an address book entry.
 	
 Examples:
 

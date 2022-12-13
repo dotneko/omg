@@ -118,7 +118,7 @@ func sendAction(out io.Writer, auto bool, keyring, outType string, args []string
 		return fmt.Errorf("error querying balance for %s", from)
 	}
 	// Display transaction summary
-	if outType != omg.HASH {
+	if !(auto && outType == omg.HASH) {
 		if to == toAddress {
 			fmt.Fprintf(out, "To                : %s\n", toAddress)
 		} else {
