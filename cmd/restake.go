@@ -176,7 +176,7 @@ func restakeAction(out io.Writer, auto bool, keyring, outType, remainder string,
 	if err != nil {
 		return err
 	}
-	if outType != omg.HASH {
+	if !(auto && outType == omg.HASH) {
 		fmt.Fprintf(out, "Delegator             : %s [%s]\n", delegator, delegatorAddress)
 		fmt.Fprintf(out, "Existing balance      : %10s %s ( %s%s )\n", omg.DenomToTokenDec(balanceBefore).StringFixed(4), cfg.Token, omg.PrettifyDenom(balanceBefore), denom)
 		fmt.Fprintf(out, "Unclaimed rewards     : %10s %s ( %s%s )\n", omg.DenomToTokenDec(rewards).StringFixed(4), cfg.Token, omg.PrettifyDenom(rewards), denom)

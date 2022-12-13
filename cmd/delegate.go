@@ -167,7 +167,7 @@ func delegateAction(out io.Writer, auto bool, keyring, outType, remainder string
 	if amount.GreaterThan(balance.Sub(remainAmt)) {
 		return fmt.Errorf("insufficient balance after deducting remainder: %s %s", omg.PrettifyDenom(expectedBalance), denom)
 	}
-	if outType != omg.HASH {
+	if !(auto && outType == omg.HASH) {
 		fmt.Fprintf(out, "Delegator             : %s [%s]\n", delegator, delegatorAddress)
 		fmt.Fprintf(out, "Available balance     : %10s %s ( %s%s ) \n", omg.DenomToTokenDec(balance).StringFixed(4), cfg.Token, omg.PrettifyDenom(balance), cfg.BaseDenom)
 		fmt.Fprintf(out, "----\n")
