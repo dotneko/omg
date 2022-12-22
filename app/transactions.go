@@ -47,7 +47,7 @@ func txGeneric(out io.Writer, cmdStr string, auto bool, keyring, outType string)
 					return txhash, nil
 				}
 			} else {
-				fmt.Fprintln(out, line)
+				fmt.Fprintln(out, string(line))
 			}
 		}
 	} else {
