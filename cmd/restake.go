@@ -208,14 +208,29 @@ func restakeAction(out io.Writer, auto bool, keyring, outType, remainder string,
 	// Wait till balance is updated
 	var balance decimal.Decimal
 	count := 0
+	if outType != omg.HASH {
+		fmt.Fprintf(out, "Checking balance")
+	}
 	for count <= 10 {
+		if outType != omg.HASH {
+			fmt.Fprintf(out, ".")
+		}
 		balance, _ = omg.GetBalanceDec(delegatorAddress)
-		if balance.GreaterThan(balanceBefore) && outType != omg.HASH {
-			fmt.Fprintf(out, "...updated balance.\n")
+		if balance.GreaterThan(balanceBefore) {
+			if outType != omg.HASH {
+				fmt.Fprintf(out, "...updated.\n")
+			}
 			break
 		}
 		count++
-		time.Sleep(1 * time.Second)
+		time.Sleep(3 * time.Second)
+	}
+	if outType != omg.HASH {
+		fmt.Fprintf(out, "\n")
+	}
+	// if timeout
+	if count > 10 {
+		return fmt.Errorf("timed out retrieving balance. Aborting auto-restake")
 	}
 	// If balance not updated and -auto flag set then abort
 	if auto && balance == balanceBefore {
