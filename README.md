@@ -205,14 +205,6 @@ omg tx delegate user1 validator1 -r 1nom
 
 > N.B. The final balance is likely to differ from the remainder set due to *auto claim rewards* being triggered by the delegation transaction.
 
-#### Check Delegation Amounts
-
-Query delegator bonded amount and shares
-
-```
-omg delegation user1 validator1
-```
-
 #### Restake
 
 The `restake` subcommand will withdraw all rewards for the account then delegate the full amount *less remainder* to the specified validator.
