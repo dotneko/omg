@@ -1,10 +1,12 @@
 app:
-  addrbook_path: '$HOME'
   addrbook_filename: '.omg.json'
-  alias_length: 3
+  addrbook_path: '$HOME'
+  min_alias_length: 3
 
 chain:
   daemon: 'onomyd'
+  daemon_path: './path/to/bin'
+  #daemon_path: '$DAEMON_BIN'
   chain_id: 'onomy-testnet-1'
   address_prefix: 'onomy'
   valoper_prefix: 'onomyvaloper'
@@ -16,4 +18,4 @@ options:
   default_fee: '1212anom'
   gas_adjust: 1.2
   keyring_backend: 'test'
-  remainder: '1000000000000anom'
+  remainder: '1NOM'

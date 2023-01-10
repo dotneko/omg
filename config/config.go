@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/spf13/viper"
@@ -10,12 +11,13 @@ import (
 
 type Config struct {
 	App struct {
-		OmgPath        string `mapstructure:"addrbook_path"`
 		OmgFilename    string `mapstructure:"addrbook_filename"`
-		MinAliasLength int    `mapstructure:"alias_length"`
+		OmgPath        string `mapstructure:"addrbook_path"`
+		MinAliasLength int    `mapstructure:"min_alias_length"`
 	}
 	Chain struct {
 		Daemon        string `mapstructure:"daemon"`
+		DaemonPath    string `mapstructure:"daemon_path"`
 		ChainId       string `mapstructure:"chain_id"`
 		AddressPrefix string `mapstructure:"address_prefix"`
 		ValoperPrefix string `mapstructure:"valoper_prefix"`
@@ -47,13 +49,6 @@ var (
 	Remainder      string
 )
 
-func init() {
-	err := ParseConfig("..")
-	if err != nil {
-		fmt.Println(err)
-	}
-}
-
 func ParseConfig(pathstr string) error {
 	var cfg Config
 
@@ -80,20 +75,40 @@ func ParseConfig(pathstr string) error {
 	}
 
 	omgDir := cfg.App.OmgPath
-	if omgDir == "$HOME" {
-		omgDir = home
-	} else {
-		dir, err := os.Stat(omgDir)
+	// Assign if envirnomental variable
+	if len(omgDir) > 1 && omgDir[0] == '$' {
+		omgDir = os.Getenv(omgDir[1:])
+	}
+	// Check if directory exists
+	dir, err := os.Stat(omgDir)
+	if err != nil {
+		return fmt.Errorf("address book directory not found: %s", omgDir)
+	}
+	if !dir.IsDir() {
+		return fmt.Errorf("configuration for address book - %q is not a directory", dir.Name())
+	}
+
+	OmgFilepath = filepath.Join(omgDir, cfg.App.OmgFilename)
+	daemonDir := cfg.Chain.DaemonPath
+	if len(daemonDir) > 1 && daemonDir[0] == '$' {
+		daemonDir = os.Getenv(daemonDir[1:])
+	}
+	Daemon = filepath.Join(daemonDir, cfg.Chain.Daemon)
+	// Check if file exists
+	_, err = os.Stat(Daemon)
+	if os.IsNotExist(err) {
+		// Check for working daemon in path
+		_, err = exec.Command("which", cfg.Chain.Daemon).Output()
 		if err != nil {
-			return fmt.Errorf("path not found: %s", omgDir)
-		}
-		if !dir.IsDir() {
-			return fmt.Errorf("%q is not a directory", dir.Name())
+			fmt.Printf("Error: cannot locate %s daemon.\n", cfg.Chain.Daemon)
+			os.Exit(1)
 		}
 	}
-	OmgFilepath = filepath.Join(omgDir, cfg.App.OmgFilename)
+
 	MinAliasLength = cfg.App.MinAliasLength
-	Daemon = cfg.Chain.Daemon
+	if MinAliasLength == 0 {
+		MinAliasLength = 3
+	}
 	ChainId = cfg.Chain.ChainId
 	AddressPrefix = cfg.Chain.AddressPrefix
 	ValoperPrefix = cfg.Chain.ValoperPrefix
