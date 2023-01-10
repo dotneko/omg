@@ -1,6 +1,6 @@
 # `omg`
 
-**Onomy Manager** by [Nomblocks](https://nomblocks.io/)
+**Onomy Manager** by [NomBlocks.io](https://nomblocks.io/)
 
 A command line tool for common user/validator interactions with the [Onomy Protocol](https://onomy.io/) blockchain.
 
@@ -14,6 +14,7 @@ A command line tool for common user/validator interactions with the [Onomy Proto
 * Automated restaking of delegator rewards +/- commissions
 * Checking and withdrawing validator commissions
 * Basic conversion between anom <-> nom
+* Query delegator bonded amount and shares
 
 ## Prerequisites
 
@@ -44,6 +45,19 @@ Copy/move `.omgconfig.yaml` to home directory or `omg` binary path
 ## Usage
 
 A full list of commands is shown by running `omg` with the `--help` or `-h` flag. This will also show the abbreviations for each command.
+
+Available commands:
+
+```
+  address     Manage the address book
+  balances    Query balances for an account or address
+  convert     Conversion between  and 
+  delegation  Query bonded delegation amount to validator
+  help        Help about any command
+  rewards     Query rewards for an account or address
+  tx          Execute a transaction
+  validator   Query and import validator addresses
+```
 
 ### Managing Addresses
 
@@ -190,6 +204,14 @@ omg tx delegate user1 validator1 -r 1nom
 ```
 
 > N.B. The final balance is likely to differ from the remainder set due to *auto claim rewards* being triggered by the delegation transaction.
+
+#### Check Delegation Amounts
+
+Query delegator bonded amount and shares
+
+```
+omg delegation user1 validator1
+```
 
 #### Restake
 

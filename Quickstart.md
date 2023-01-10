@@ -17,22 +17,24 @@ After extracting, ensure `omg` in path and move/copy `.omgconfig.yaml` to $HOME 
 app:
   addrbook_path: '$HOME'
   addrbook_filename: '.omg.json'
-  alias_length: 3
+  min_alias_length: 3
 
 chain:
   daemon: 'onomyd'
+  daemon_path: '/path/to/bin'
+  #daemon_path: '$CAN_BE_ENVIRONMENT_VARIABLE'
   chain_id: 'onomy-testnet-1'
   address_prefix: 'onomy'
   valoper_prefix: 'onomyvaloper'
   base_denom: 'anom'
-  token: 'nom'
+  token: 'NOM'
   decimals: 18
 
 options:
-  default_fee: '1212anom'
+  default_fee: '1000anom'
   gas_adjust: 1.2
   keyring_backend: 'test'
-  remainder: '1nom'
+  remainder: '1NOM'
 ```
 
 Important parameters:
