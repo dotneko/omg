@@ -49,6 +49,13 @@ var (
 	Remainder      string
 )
 
+func init() {
+	err := ParseConfig("..")
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
 func ParseConfig(pathstr string) error {
 	var cfg Config
 
