@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	omg "github.com/dotneko/omg/app"
 	cfg "github.com/dotneko/omg/config"
+	"github.com/shopspring/decimal"
 
 	"github.com/spf13/cobra"
 )
@@ -22,7 +24,7 @@ var balancesCmd = &cobra.Command{
 	Long:    `Query balances for an account or address.`,
 	Args: func(cmd *cobra.Command, args []string) error {
 		allAccounts, _ := cmd.Flags().GetBool("all")
-		if len(args) != 1 && !allAccounts {
+		if len(args) < 1 && !allAccounts {
 			fmt.Printf("Error: expecting [name|address] or --all flag\n")
 			cmd.Help()
 			os.Exit(0)
@@ -38,6 +40,10 @@ var balancesCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		less, err := cmd.Flags().GetString("less")
+		if err != nil {
+			return err
+		}
 		raw, err := cmd.Flags().GetBool("raw")
 		if err != nil {
 			return err
@@ -46,7 +52,15 @@ var balancesCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		return balancesAction(os.Stdout, allAccounts, detail, raw, token, args)
+		var outType string = ""
+		if raw {
+			outType = omg.RAW
+		} else if token {
+			outType = omg.TOKEN
+		} else if detail {
+			outType = omg.DETAIL
+		}
+		return balancesAction(os.Stdout, allAccounts, less, outType, args)
 	},
 }
 
@@ -55,24 +69,33 @@ func init() {
 
 	balancesCmd.Flags().BoolP("all", "a", false, "Check all accounts in address book")
 	balancesCmd.Flags().BoolP("detail", "d", false, "Detailed output")
+	balancesCmd.Flags().StringP("less", "l", "", "Output balance less [amount] for individual account")
 	balancesCmd.Flags().BoolP("raw", "r", false, "Raw output")
 	balancesCmd.Flags().BoolP("token", "t", false, "Token amount output")
 
 }
 
-func balancesAction(out io.Writer, allAccounts bool, detail bool, raw bool, token bool, args []string) error {
+func balancesAction(out io.Writer, allAccounts bool, less, outType string, args []string) error {
+	var (
+		lessAmount decimal.Decimal
+		lessDenom  string
+		err        error
+	)
+	if less != "" {
+		lessAmount, lessDenom, err = omg.StrSplitAmountDenomDec(less)
+		if err != nil {
+			return err
+		}
+		if strings.EqualFold(lessDenom, cfg.Token) {
+			lessAmount = omg.TokenToDenomDec(lessAmount)
+		}
+	}
+
 	l := &omg.Accounts{}
 	if err := l.Load(cfg.OmgFilepath); err != nil {
 		return err
 	}
-	var outType string = ""
-	if raw {
-		outType = omg.RAW
-	} else if token {
-		outType = omg.TOKEN
-	} else if detail {
-		outType = omg.DETAIL
-	}
+
 	if allAccounts {
 		for _, acc := range *l {
 			if omg.IsNormalAddress(acc.Address) {
@@ -105,6 +128,14 @@ func balancesAction(out io.Writer, allAccounts bool, detail bool, raw bool, toke
 	if err != nil {
 		return err
 	}
-	omg.OutputAmount(out, name, address, balance, cfg.BaseDenom, outType)
+	if less != "" {
+		finalBalance := balance.Sub(lessAmount)
+		if outType != omg.RAW {
+			fmt.Fprintf(out, "Balance (%s) less (%s):\n", omg.PrettifyDenom(balance), omg.PrettifyDenom(lessAmount))
+		}
+		omg.OutputAmount(out, name, address, finalBalance, cfg.BaseDenom, outType)
+	} else {
+		omg.OutputAmount(out, name, address, balance, cfg.BaseDenom, outType)
+	}
 	return nil
 }
