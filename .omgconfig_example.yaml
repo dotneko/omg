@@ -5,7 +5,7 @@ app:
 
 chain:
   daemon: 'onomyd'
-  daemon_path: './path/to/bin'
+  daemon_path: '/home/user/cosmovisor/current/bin'
   #daemon_path: '$DAEMON_BIN'
   chain_id: 'onomy-testnet-1'
   address_prefix: 'onomy'
