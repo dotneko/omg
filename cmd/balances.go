@@ -7,11 +7,10 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 
+	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	omg "github.com/dotneko/omg/app"
 	cfg "github.com/dotneko/omg/config"
-	"github.com/shopspring/decimal"
 
 	"github.com/spf13/cobra"
 )
@@ -76,20 +75,6 @@ func init() {
 }
 
 func balancesAction(out io.Writer, allAccounts bool, less, outType string, args []string) error {
-	var (
-		lessAmount decimal.Decimal
-		lessDenom  string
-		err        error
-	)
-	if less != "" {
-		lessAmount, lessDenom, err = omg.StrSplitAmountDenomDec(less)
-		if err != nil {
-			return err
-		}
-		if strings.EqualFold(lessDenom, cfg.Token) {
-			lessAmount = omg.TokenToDenomDec(lessAmount)
-		}
-	}
 
 	l := &omg.Accounts{}
 	if err := l.Load(cfg.OmgFilepath); err != nil {
@@ -99,7 +84,7 @@ func balancesAction(out io.Writer, allAccounts bool, less, outType string, args 
 	if allAccounts {
 		for _, acc := range *l {
 			if omg.IsNormalAddress(acc.Address) {
-				balance, err := omg.GetBalanceDec(acc.Address)
+				balance, err := omg.GetBalance(acc.Address)
 				if err != nil {
 					fmt.Fprintf(out, "Error: %20s : %s\n", acc.Alias, err.Error())
 					continue
@@ -107,7 +92,7 @@ func balancesAction(out io.Writer, allAccounts bool, less, outType string, args 
 				if outType == omg.RAW || outType == omg.TOKEN {
 					fmt.Fprintf(out, "%s ", acc.Address)
 				}
-				omg.OutputAmount(out, acc.Alias, acc.Address, balance, cfg.BaseDenom, outType)
+				omg.OutputAmount(out, acc.Alias, acc.Address, balance.String(), outType)
 			}
 		}
 		return nil
@@ -124,18 +109,22 @@ func balancesAction(out io.Writer, allAccounts bool, less, outType string, args 
 	if address == "" {
 		return fmt.Errorf("account %q not found", args[0])
 	}
-	balance, err := omg.GetBalanceDec(address)
+	balance, err := omg.GetBalance(address)
 	if err != nil {
 		return err
 	}
 	if less != "" {
-		finalBalance := balance.Sub(lessAmount)
-		if outType != omg.RAW {
-			fmt.Fprintf(out, "Balance (%s) less (%s):\n", omg.PrettifyDenom(balance), omg.PrettifyDenom(lessAmount))
+		lessCoin, err := sdktypes.ParseCoinNormalized(less)
+		if err != nil {
+			return fmt.Errorf("error parsing less amount: %s", less)
 		}
-		omg.OutputAmount(out, name, address, finalBalance, cfg.BaseDenom, outType)
+		finalBalance := balance.Sub(lessCoin)
+		if outType != omg.RAW {
+			fmt.Fprintf(out, "Balance (%s %s) less (%s %s):\n", omg.PrettifyBaseAmt(balance.String()), cfg.BaseDenom, omg.PrettifyBaseAmt(less), cfg.BaseDenom)
+		}
+		omg.OutputAmount(out, name, address, finalBalance.String(), outType)
 	} else {
-		omg.OutputAmount(out, name, address, balance, cfg.BaseDenom, outType)
+		omg.OutputAmount(out, name, address, balance.String(), outType)
 	}
 	return nil
 }

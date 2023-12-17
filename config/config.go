@@ -23,7 +23,7 @@ type Config struct {
 		ValoperPrefix string `mapstructure:"valoper_prefix"`
 		BaseDenom     string `mapstructure:"base_denom"`
 		Token         string `mapstructure:"token"`
-		Decimals      int32  `mapstructure:"decimals"`
+		Decimals      int64  `mapstructure:"decimals"`
 	}
 	Options struct {
 		DefaultFee     string  `mapstructure:"default_fee"`
@@ -42,7 +42,7 @@ var (
 	ValoperPrefix  string
 	BaseDenom      string
 	Token          string
-	Decimals       int32
+	Decimals       int64
 	DefaultFee     string
 	GasAdjust      float32
 	KeyringBackend string

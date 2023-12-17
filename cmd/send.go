@@ -7,11 +7,10 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 
+	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	omg "github.com/dotneko/omg/app"
 	cfg "github.com/dotneko/omg/config"
-	"github.com/shopspring/decimal"
 
 	"github.com/spf13/cobra"
 )
@@ -64,8 +63,8 @@ func sendAction(out io.Writer, auto bool, keyring, outType string, args []string
 		to          string
 		fromAddress string
 		toAddress   string
-		amount      decimal.Decimal
-		denom       string
+		amount      string
+		amtCoin     sdktypes.Coin
 		err         error
 	)
 	l := &omg.Accounts{}
@@ -103,20 +102,17 @@ func sendAction(out io.Writer, auto bool, keyring, outType string, args []string
 		return fmt.Errorf("invalid address: %s", toAddress)
 	}
 	// Parse amount
-	amount, denom, err = omg.StrSplitAmountDenomDec(args[2])
-	if strings.EqualFold(denom, cfg.Token) {
-		amount, _ = omg.ConvertDecDenom(amount, denom)
-	} else if !strings.EqualFold(denom, cfg.BaseDenom) {
-		return fmt.Errorf("unexpected denom, aborting")
-	}
+	amtCoin, err = sdktypes.ParseCoinNormalized(args[2])
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to parse %s to Coin: %s", args[2], err)
 	}
 	// Check balance for sender
-	balance, err := omg.GetBalanceDec(fromAddress)
+	balance, err := omg.GetBalance(fromAddress)
 	if err != nil {
 		return fmt.Errorf("error querying balance for %s", from)
 	}
+	balanceToken, _ := omg.AmtToTokenDecCoin(balance.String())
+	requestAmtToken, _ := omg.AmtToTokenDecCoin(amount)
 	// Display transaction summary
 	if !(auto && outType == omg.HASH) {
 		if to == toAddress {
@@ -125,12 +121,13 @@ func sendAction(out io.Writer, auto bool, keyring, outType string, args []string
 			fmt.Fprintf(out, "To                : %s [%s]\n", to, toAddress)
 		}
 		fmt.Fprintf(out, "From              : %s [%s]\n", from, fromAddress)
-		fmt.Fprintf(out, "Available balance : %s %s ( %s%s )\n", omg.DenomToTokenDec(balance).StringFixed(4), cfg.Token, omg.PrettifyDenom(balance), cfg.BaseDenom)
-		fmt.Fprintf(out, "Amount requested  : %s %s ( %s%s )\n", omg.DenomToTokenDec(amount).StringFixed(4), cfg.Token, omg.PrettifyDenom(amount), cfg.BaseDenom)
+
+		fmt.Fprintf(out, "Available balance : %s %s ( %s%s )\n", balanceToken, cfg.Token, omg.PrettifyBaseAmt(balance.String()), cfg.BaseDenom)
+		fmt.Fprintf(out, "Amount requested  : %s %s ( %s%s )\n", requestAmtToken, cfg.Token, omg.PrettifyBaseAmt(amount), cfg.BaseDenom)
 		fmt.Fprintf(out, "----\n")
 	}
 
-	if amount.GreaterThan(balance) {
+	if amtCoin.IsGTE(balance) {
 		return fmt.Errorf("insufficient balance for send amount")
 	}
 	txhash, err := omg.TxSend(out, fromAddress, toAddress, amount, auto, keyring, outType)

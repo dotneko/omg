@@ -110,23 +110,23 @@ func qDelegationAction(out io.Writer, outType string, args []string) error {
 		}
 	}
 	// Check balance
-	amt, shares, err := omg.GetDelegationAmountShares(delegatorAddress, valAddress)
+	amtCoin, shares, err := omg.GetDelegationAmountShares(delegatorAddress, valAddress)
 	if err != nil {
 		return err
 	}
 
 	switch {
 	case outType == omg.DETAIL:
-		fmt.Fprintf(out, "Amount : %s %s ( %s%s )\n", omg.DenomToTokenDec(amt).StringFixed(4), cfg.Token, omg.PrettifyDenom(amt), cfg.BaseDenom)
-		fmt.Fprintf(out, "Shares : %s ( %s )\n", omg.DenomToTokenDec(shares).StringFixed(4), omg.PrettifyDenom(shares))
+		fmt.Fprintf(out, "Amount : %s ( %s%s )\n", omg.AmtToTokenStr(amtCoin.String()), omg.PrettifyBaseAmt(amtCoin.String()), cfg.BaseDenom)
+		fmt.Fprintf(out, "Shares : %s\n", shares)
 	case outType == omg.RAW:
-		fmt.Fprintf(out, "%s%s\n", amt, cfg.BaseDenom)
+		fmt.Fprintf(out, "%s\n", amtCoin.String())
 	case outType == omg.SHARES:
-		fmt.Fprintf(out, "Shares : %s ( %s )\n", omg.DenomToTokenDec(shares).StringFixed(4), omg.PrettifyDenom(shares))
+		fmt.Fprintf(out, "Shares : %s\n", shares)
 	case outType == omg.TOKEN:
-		fmt.Fprintf(out, "%s %s\n", omg.DenomToTokenDec(amt).StringFixed(18), cfg.Token)
+		fmt.Fprintf(out, "%s %s\n", omg.AmtToTokenStr(amtCoin.String()), cfg.Token)
 	default:
-		fmt.Fprintf(out, "Amount : %s %s ( %s%s )\n", omg.DenomToTokenDec(amt).StringFixed(4), cfg.Token, omg.PrettifyDenom(amt), cfg.BaseDenom)
+		fmt.Fprintf(out, "Amount : %s ( %s )\n", omg.AmtToTokenStr(amtCoin.String()), omg.PrettifyBaseAmt(amtCoin.String()))
 	}
 	return nil
 }

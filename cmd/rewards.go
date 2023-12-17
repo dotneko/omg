@@ -8,6 +8,8 @@ import (
 	"io"
 	"os"
 
+	sdktypes "github.com/cosmos/cosmos-sdk/types"
+
 	omg "github.com/dotneko/omg/app"
 	cfg "github.com/dotneko/omg/config"
 
@@ -88,7 +90,7 @@ func rewardsAction(out io.Writer, allAccounts, detail, raw, token bool, args []s
 				if len(r.Rewards) != 0 && len(r.Rewards[0].Reward) != 0 {
 					fmt.Fprintf(out, "%s:\n", acc.Alias)
 					for _, v := range r.Rewards {
-						amt, err := omg.StrToDec(v.Reward[0].Amount)
+						amtCoin, err := sdktypes.ParseCoinNormalized(v.Reward[0].Amount + v.Reward[0].Denom)
 						if err != nil {
 							return err
 						}
@@ -96,7 +98,7 @@ func rewardsAction(out io.Writer, allAccounts, detail, raw, token bool, args []s
 						if outType == omg.RAW || outType == omg.TOKEN {
 							fmt.Fprintf(out, "%s ", valoperAddress)
 						}
-						omg.OutputAmount(out, moniker, valoperAddress, amt, v.Reward[0].Denom, outType)
+						omg.OutputAmount(out, moniker, valoperAddress, amtCoin.String(), outType)
 					}
 				}
 			}
@@ -120,12 +122,12 @@ func rewardsAction(out io.Writer, allAccounts, detail, raw, token bool, args []s
 		return err
 	}
 	for _, v := range r.Rewards {
-		amt, err := omg.StrToDec(v.Reward[0].Amount)
+		amtCoin, err := sdktypes.ParseCoinNormalized(v.Reward[0].Amount + v.Reward[0].Denom)
 		if err != nil {
 			return err
 		}
 		moniker, valoperAddress := omg.GetValidator(v.ValidatorAddress)
-		omg.OutputAmount(out, moniker, valoperAddress, amt, v.Reward[0].Denom, outType)
+		omg.OutputAmount(out, moniker, valoperAddress, amtCoin.String(), outType)
 	}
 	return nil
 }

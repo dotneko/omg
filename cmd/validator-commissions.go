@@ -9,7 +9,6 @@ import (
 	"os"
 
 	omg "github.com/dotneko/omg/app"
-	cfg "github.com/dotneko/omg/config"
 	"github.com/spf13/cobra"
 )
 
@@ -82,11 +81,11 @@ func commissionsAction(out io.Writer, allAccounts, detail, raw, token bool, args
 			return fmt.Errorf("no matching validator for %s", args[0])
 		}
 
-		commission, err := omg.GetCommissionDec(valoperAddress)
+		commission, err := omg.GetCommission(valoperAddress)
 		if err != nil {
 			return err
 		}
-		omg.OutputAmount(out, moniker, valoperAddress, commission, cfg.BaseDenom, outType)
+		omg.OutputAmount(out, moniker, valoperAddress, commission.String(), outType)
 		return nil
 	}
 
@@ -97,7 +96,7 @@ func commissionsAction(out io.Writer, allAccounts, detail, raw, token bool, args
 		}
 		for _, val := range vQ.Validators {
 			if !val.Jailed {
-				commission, err := omg.GetCommissionDec(val.OperatorAddress)
+				commission, err := omg.GetCommission(val.OperatorAddress)
 				if err != nil {
 					fmt.Fprintf(out, "Error: %12s : %s\n", val.Description.Moniker, err.Error())
 					continue
@@ -105,7 +104,7 @@ func commissionsAction(out io.Writer, allAccounts, detail, raw, token bool, args
 				if outType == omg.RAW || outType == omg.TOKEN {
 					fmt.Fprintf(out, "%s ", val.OperatorAddress)
 				}
-				omg.OutputAmount(out, val.Description.Moniker, val.OperatorAddress, commission, cfg.BaseDenom, outType)
+				omg.OutputAmount(out, val.Description.Moniker, val.OperatorAddress, commission.String(), outType)
 			}
 		}
 	}

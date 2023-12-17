@@ -11,7 +11,6 @@ import (
 
 	omg "github.com/dotneko/omg/app"
 	cfg "github.com/dotneko/omg/config"
-	"github.com/shopspring/decimal"
 
 	"github.com/spf13/cobra"
 )
@@ -30,12 +29,6 @@ var (
 			}
 			if err := cobra.RangeArgs(1, 2)(cmd, args); err != nil {
 				return fmt.Errorf("expecting [amount][denom]")
-			}
-			if len(args) == 2 {
-				denom := args[1]
-				if !strings.EqualFold(denom, cfg.BaseDenom) && !strings.EqualFold(denom, cfg.Token) {
-					return fmt.Errorf("denom must be %q or %q", cfg.BaseDenom, cfg.Token)
-				}
 			}
 			return nil
 		},
@@ -57,31 +50,37 @@ func init() {
 
 func convertAction(out io.Writer, detail bool, args []string) error {
 	var (
-		amount decimal.Decimal
-		denom  string
-		err    error
+		amount      string
+		targetDenom string
 	)
-	if len(args) == 1 {
-		amount, denom, err = omg.StrSplitAmountDenomDec(args[0])
-		if err != nil {
-			return err
+	if len(args) == 2 {
+		if args[1] == cfg.BaseDenom || args[1] == cfg.Token {
+			amount = args[0] + args[1]
+		} else {
+			return fmt.Errorf("%s is not a recognized denom", args[1])
 		}
-	} else if len(args) == 2 {
-		amount, err = decimal.NewFromString(args[0])
-		if err != nil {
-			return err
-		}
-		denom = args[1]
-	}
-	var (
-		convAmount decimal.Decimal
-		convDenom  string
-	)
-	convAmount, convDenom = omg.ConvertDecDenom(amount, denom)
-	if detail {
-		fmt.Fprintf(out, "%s => %s\n", omg.PrettifyAmount(amount, denom), omg.PrettifyAmount(convAmount, convDenom))
 	} else {
-		fmt.Fprintf(out, "%s%s ", convAmount.String(), convDenom)
+		amount = args[0]
+	}
+	numstr, denom, err := omg.StrSplitAmountDenom(amount)
+	if err != nil {
+		return err
+	}
+	// fmt.Fprintf(out, "Got %s, with denom %s", args[0], denom)
+	if strings.EqualFold(denom, cfg.BaseDenom) {
+		targetDenom = cfg.Token
+	} else if strings.EqualFold(denom, cfg.Token) {
+		targetDenom = cfg.BaseDenom
+	} else {
+		return fmt.Errorf("%s not recognized", denom)
+	}
+
+	// fmt.Fprintf(out, "Target denom: %s", targetDenom)
+	convAmount := omg.ConvertAmt(numstr+denom, targetDenom)
+	if detail {
+		fmt.Fprintf(out, "%s => [%s] %s\n", amount, targetDenom, convAmount)
+	} else {
+		fmt.Fprintf(out, "%s", convAmount)
 	}
 	return nil
 }

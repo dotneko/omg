@@ -7,9 +7,10 @@ import (
 	"os/exec"
 	"strings"
 
+	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	cfg "github.com/dotneko/omg/config"
+
 	"github.com/dotneko/omg/types"
-	"github.com/shopspring/decimal"
 )
 
 // daemon flags
@@ -36,30 +37,34 @@ func GetBalancesQuery(address string) (*types.BalancesQuery, error) {
 	return &b, nil
 }
 
-// Get Balances (first denom) to decimal amount
-func GetBalanceDec(address string) (decimal.Decimal, error) {
+// Get Balances (first denom) to string amount
+func GetBalance(address string) (sdktypes.Coin, error) {
 
 	bQ, err := GetBalancesQuery(address)
 	if len(bQ.Balances) == 0 {
-		return decimal.NewFromInt(-1), fmt.Errorf("no balances found")
+		return sdktypes.Coin{}, fmt.Errorf("no balances found")
 	}
 	if err != nil {
-		return decimal.NewFromInt(-1), err
+		return sdktypes.Coin{}, err
 	}
-	amt, err := decimal.NewFromString(bQ.Balances[0].Amount)
+	amtCoin, err := sdktypes.ParseCoinNormalized(bQ.Balances[0].Amount + bQ.Balances[0].Denom)
 	if err != nil {
-		return decimal.NewFromInt(-1), err
+		return sdktypes.Coin{}, err
 	}
-	return amt, nil
+	return amtCoin, nil
 }
 
 // Check balance method
 func CheckBalances(address string) {
-	balance, err := GetBalanceDec(address)
+	balance, err := GetBalance(address)
 	if err != nil {
 		fmt.Sprintln(err)
 	}
-	fmt.Printf("Avaliable balance : %s %s (%s %s)\n", balance.String(), cfg.BaseDenom, DenomToTokenDec(balance).String(), cfg.Token)
+	tokenBalance, err := AmtToTokenDecCoin(balance.String())
+	if err != nil {
+		fmt.Sprintln(err)
+	}
+	fmt.Printf("Avaliable balance : %s %s (%s %s)\n", tokenBalance.Amount.String(), cfg.BaseDenom, tokenBalance, cfg.Token)
 }
 
 // Get keyring name and addresses
@@ -183,20 +188,20 @@ func QueryCommission(valopAddress string) (*types.CommissionsQuery, error) {
 }
 
 // Get commissions (first denom) to decimal amount
-func GetCommissionDec(valopAddress string) (decimal.Decimal, error) {
+func GetCommission(valopAddress string) (sdktypes.Coin, error) {
 
 	cQ, err := QueryCommission(valopAddress)
 	if len(cQ.Commission) == 0 {
-		return decimal.NewFromInt(-1), fmt.Errorf("no commission found")
+		return sdktypes.Coin{}, fmt.Errorf("no commission found")
 	}
 	if err != nil {
-		return decimal.NewFromInt(-1), err
+		return sdktypes.Coin{}, err
 	}
-	amt, err := decimal.NewFromString(cQ.Commission[0].Amount)
+	amtCoin, err := sdktypes.ParseCoinNormalized(cQ.Commission[0].Amount + cQ.Commission[0].Denom)
 	if err != nil {
-		return decimal.NewFromInt(-1), err
+		return sdktypes.Coin{}, err
 	}
-	return amt, nil
+	return amtCoin, nil
 }
 
 // Query delegation
@@ -218,22 +223,18 @@ func QueryDelegation(address, valopAddress string) (*types.DelegationQuery, erro
 }
 
 // Get Delegation Amount
-func GetDelegationAmountShares(address, valopAddress string) (decimal.Decimal, decimal.Decimal, error) {
+func GetDelegationAmountShares(address, valopAddress string) (sdktypes.Coin, string, error) {
 
 	dQ, err := QueryDelegation(address, valopAddress)
 	if err != nil {
-		return decimal.NewFromInt(-1), decimal.NewFromInt(-1), err
+		return sdktypes.Coin{}, "", err
 	}
 	if dQ.Balance.Amount == "" || dQ.Delegation.Shares == "" {
-		return decimal.NewFromInt(-0), decimal.NewFromInt(0), fmt.Errorf("no delegation found")
+		return sdktypes.Coin{}, "", fmt.Errorf("no delegation found")
 	}
-	amt, err := decimal.NewFromString(dQ.Balance.Amount)
+	balanceCoin, err := sdktypes.ParseCoinNormalized(dQ.Balance.Amount + dQ.Balance.Denom)
 	if err != nil {
-		return decimal.NewFromInt(-1), decimal.NewFromInt(-1), err
+		return sdktypes.Coin{}, "", fmt.Errorf("cannot parse balance amount")
 	}
-	shares, err := decimal.NewFromString(dQ.Delegation.Shares)
-	if err != nil {
-		return decimal.NewFromInt(-1), decimal.NewFromInt(-1), err
-	}
-	return amt, shares, nil
+	return balanceCoin, dQ.Delegation.Shares, nil
 }

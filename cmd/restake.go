@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
+	sdktypes "github.com/cosmos/cosmos-sdk/types"
 	omg "github.com/dotneko/omg/app"
 	cfg "github.com/dotneko/omg/config"
-	"github.com/shopspring/decimal"
 	"github.com/spf13/cobra"
 )
 
@@ -96,14 +96,13 @@ func restakeAction(out io.Writer, auto bool, keyring, outType, remainder string,
 		delegatorAddress string
 		valoperAddress   string
 		valoperMoniker   string
-		amount           decimal.Decimal
-		balanceBefore    decimal.Decimal
+		amount           sdktypes.Coin
+		balanceBefore    sdktypes.Coin
 		denom            string = cfg.BaseDenom
-		remainAmt        decimal.Decimal
-		remainDenom      string
-		rewards          decimal.Decimal
-		commission       decimal.Decimal
-		expectedBalance  decimal.Decimal
+		remainderCoin    sdktypes.Coin
+		rewards          sdktypes.Coin
+		commission       sdktypes.Coin
+		expectedBalance  sdktypes.Coin
 		wdtxhash         string
 		delegtxhash      string
 	)
@@ -152,14 +151,14 @@ func restakeAction(out io.Writer, auto bool, keyring, outType, remainder string,
 		if c.Commission[0].Denom != cfg.BaseDenom {
 			return fmt.Errorf("expected total denom to be %q, got %q", cfg.BaseDenom, c.Commission[0].Denom)
 		}
-		commission, err = omg.StrToDec(c.Commission[0].Amount)
+		commission, err = sdktypes.ParseCoinNormalized(c.Commission[0].Amount + c.Commission[0].Denom)
 		if err != nil {
 			return err
 		}
 	}
 
 	// Check balance for delegator
-	balanceBefore, err := omg.GetBalanceDec(delegatorAddress)
+	balanceBefore, err := omg.GetBalance(delegatorAddress)
 	if err != nil {
 		return fmt.Errorf("error querying balance for %s", delegator)
 	}
@@ -172,16 +171,16 @@ func restakeAction(out io.Writer, auto bool, keyring, outType, remainder string,
 	if r.Total[0].Denom != cfg.BaseDenom {
 		return fmt.Errorf("expected total denom to be %q, got %q", cfg.BaseDenom, r.Total[0].Denom)
 	}
-	rewards, err = omg.StrToDec(r.Total[0].Amount)
+	rewards, err = sdktypes.ParseCoinNormalized(r.Total[0].Amount + r.Total[0].Denom)
 	if err != nil {
 		return err
 	}
 	if !(auto && outType == omg.HASH) {
 		fmt.Fprintf(out, "Delegator             : %s [%s]\n", delegator, delegatorAddress)
-		fmt.Fprintf(out, "Existing balance      : %10s %s ( %s%s )\n", omg.DenomToTokenDec(balanceBefore).StringFixed(4), cfg.Token, omg.PrettifyDenom(balanceBefore), denom)
-		fmt.Fprintf(out, "Unclaimed rewards     : %10s %s ( %s%s )\n", omg.DenomToTokenDec(rewards).StringFixed(4), cfg.Token, omg.PrettifyDenom(rewards), denom)
+		fmt.Fprintf(out, "Existing balance      : %s ( %s )\n", omg.AmtToTokenStr(balanceBefore.String()), omg.PrettifyBaseAmt(balanceBefore.String()))
+		fmt.Fprintf(out, "Unclaimed rewards     : %s ( %s )\n", omg.AmtToTokenStr(rewards.String()), omg.PrettifyBaseAmt(rewards.String()))
 		if withCommission {
-			fmt.Fprintf(out, "Unclaimed commissions : %10s %s ( %s%s )\n", omg.DenomToTokenDec(commission).StringFixed(4), cfg.Token, omg.PrettifyDenom(commission), denom)
+			fmt.Fprintf(out, "Unclaimed commissions : %10s ( %s )\n", omg.AmtToTokenStr(commission.String()), omg.PrettifyBaseAmt(commission.String()))
 			fmt.Fprintf(out, "----\n")
 		}
 	}
@@ -206,7 +205,7 @@ func restakeAction(out io.Writer, auto bool, keyring, outType, remainder string,
 		fmt.Fprintf(out, "Withdraw hash: %s", wdtxhash)
 	}
 	// Wait till balance is updated
-	var balance decimal.Decimal
+	var balance sdktypes.Coin
 	count := 0
 	if outType != omg.HASH {
 		fmt.Fprintf(out, "Checking balance")
@@ -215,8 +214,8 @@ func restakeAction(out io.Writer, auto bool, keyring, outType, remainder string,
 		if outType != omg.HASH {
 			fmt.Fprintf(out, ".")
 		}
-		balance, _ = omg.GetBalanceDec(delegatorAddress)
-		if balance.GreaterThan(balanceBefore) {
+		balance, _ = omg.GetBalance(delegatorAddress)
+		if !balance.IsLT(balanceBefore) {
 			if outType != omg.HASH {
 				fmt.Fprintf(out, "...updated.\n")
 			}
@@ -237,46 +236,39 @@ func restakeAction(out io.Writer, auto bool, keyring, outType, remainder string,
 		return fmt.Errorf("balance not increased. Aborting auto-restake")
 	}
 	// Parse remainder
-	remainAmt, remainDenom, err = omg.StrSplitAmountDenomDec(remainder)
+	remainderCoin, err = sdktypes.ParseCoinNormalized(remainder)
 	if err != nil {
 		return err
 	}
-	if strings.EqualFold(remainDenom, cfg.Token) {
-		remainAmt, _ = omg.ConvertDecDenom(remainAmt, remainDenom)
-	}
 	if len(args) < 3 {
 		// Restake full balance less remainder if no amount specified
-		amount = balance.Sub(remainAmt)
-		expectedBalance = remainAmt
+		amount = balance.Sub(remainderCoin)
+		expectedBalance = remainderCoin
 	} else {
 		// Parse delegation amount
-		amount, denom, err = omg.StrSplitAmountDenomDec(args[2])
+		amount, err = sdktypes.ParseCoinNormalized(args[2])
 		if err != nil {
 			return err
-		}
-		// Convert to baseDenom if denominated in Token
-		if strings.EqualFold(denom, cfg.Token) {
-			amount, denom = omg.ConvertDecDenom(amount, denom)
 		}
 		expectedBalance = balance.Sub(amount)
 	}
 	if amount.IsNegative() || amount.IsZero() {
-		return fmt.Errorf("amount must be greater than zero, got %s", omg.PrettifyDenom(amount))
+		return fmt.Errorf("amount must be greater than zero, got %s", omg.PrettifyBaseAmt(amount.String()))
 	}
-	if amount.GreaterThan(balance.Sub(remainAmt)) {
-		return fmt.Errorf("insufficient balance after deducting remainder: %s %s", omg.PrettifyDenom(expectedBalance), denom)
+	if !amount.IsLT(balance.Sub(remainderCoin)) {
+		return fmt.Errorf("insufficient balance after deducting remainder: %s %s", omg.PrettifyBaseAmt(expectedBalance.String()), denom)
 	}
 	if outType != omg.HASH {
 		fmt.Fprintf(out, "----\n")
 		fmt.Fprintf(out, "Delegate to Validator : %s\n", valoperAddress)
-		fmt.Fprintf(out, "Available balance     : %10s %s ( %s%s )\n", omg.DenomToTokenDec(balance).StringFixed(4), cfg.Token, omg.PrettifyDenom(balance), cfg.BaseDenom)
-		fmt.Fprintf(out, "Delegation amount     : %10s %s ( %s%s )\n", omg.DenomToTokenDec(amount).StringFixed(4), cfg.Token, omg.PrettifyDenom(amount), cfg.BaseDenom)
-		fmt.Fprintf(out, "Min remainder setting : %10s %s ( %s%s )\n", omg.DenomToTokenDec(remainAmt).StringFixed(4), cfg.Token, omg.PrettifyDenom(remainAmt), cfg.BaseDenom)
-		fmt.Fprintf(out, "Est minimum remaining : %10s %s ( %s%s )\n", omg.DenomToTokenDec(expectedBalance).StringFixed(4), cfg.Token, omg.PrettifyDenom(expectedBalance), cfg.BaseDenom)
+		fmt.Fprintf(out, "Available balance     : %s ( %s )\n", omg.AmtToTokenStr(balance.String()), omg.PrettifyBaseAmt(balance.String()))
+		fmt.Fprintf(out, "Delegation amount     : %s ( %s )\n", omg.AmtToTokenStr(amount.String()), omg.PrettifyBaseAmt(amount.String()))
+		fmt.Fprintf(out, "Min remainder setting : %s ( %s )\n", omg.AmtToTokenStr(remainderCoin.String()), omg.PrettifyBaseAmt(remainderCoin.String()))
+		fmt.Fprintf(out, "Est minimum remaining : %s ( %s )\n", omg.AmtToTokenStr(expectedBalance.String()), omg.PrettifyBaseAmt(expectedBalance.String()))
 		fmt.Fprint(out, "----\n")
 	}
 
-	delegtxhash, err = omg.TxDelegateToValidator(out, delegator, valoperAddress, amount, auto, keyring, outType)
+	delegtxhash, err = omg.TxDelegateToValidator(out, delegator, valoperAddress, amount.String(), auto, keyring, outType)
 	if err != nil {
 		return err
 	}

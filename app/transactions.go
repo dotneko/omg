@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	cfg "github.com/dotneko/omg/config"
-	"github.com/shopspring/decimal"
 )
 
 func extractValue(line, separator, keystring string) string {
@@ -66,9 +65,9 @@ func txGeneric(out io.Writer, cmdStr string, auto bool, keyring, outType string)
 }
 
 // Delegate to validator method
-func TxDelegateToValidator(out io.Writer, delegator string, valAddress string, amount decimal.Decimal, auto bool, keyring, outType string) (string, error) {
+func TxDelegateToValidator(out io.Writer, delegator string, valAddress string, amount string, auto bool, keyring, outType string) (string, error) {
 
-	cmdStr := fmt.Sprintf("tx staking delegate %s %s --from %s", valAddress, DenomToStr(amount), delegator)
+	cmdStr := fmt.Sprintf("tx staking delegate %s %s --from %s", valAddress, amount, delegator)
 	cmdStr += fmt.Sprintf(" --fees %s --gas auto --gas-adjustment %f", cfg.DefaultFee, cfg.GasAdjust)
 	cmdStr += fmt.Sprintf(" --keyring-backend %s --chain-id %s", keyring, cfg.ChainId)
 
@@ -80,9 +79,9 @@ func TxDelegateToValidator(out io.Writer, delegator string, valAddress string, a
 }
 
 // Send tokens between accounts method
-func TxSend(out io.Writer, fromAddress string, toAddress string, amount decimal.Decimal, auto bool, keyring, outType string) (string, error) {
+func TxSend(out io.Writer, fromAddress string, toAddress string, amount string, auto bool, keyring, outType string) (string, error) {
 
-	cmdStr := fmt.Sprintf("tx bank send %s %s %s", fromAddress, toAddress, DenomToStr(amount))
+	cmdStr := fmt.Sprintf("tx bank send %s %s %s", fromAddress, toAddress, amount)
 	cmdStr += fmt.Sprintf(" --fees %s --gas auto --gas-adjustment %f", cfg.DefaultFee, cfg.GasAdjust)
 	cmdStr += fmt.Sprintf(" --keyring-backend %s --chain-id %s", keyring, cfg.ChainId)
 
