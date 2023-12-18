@@ -124,7 +124,7 @@ func qDelegationAction(out io.Writer, outType string, args []string) error {
 	case outType == omg.SHARES:
 		fmt.Fprintf(out, "Shares : %s\n", shares)
 	case outType == omg.TOKEN:
-		fmt.Fprintf(out, "%s %s\n", omg.AmtToTokenStr(amtCoin.String()), cfg.Token)
+		fmt.Fprintf(out, "%s\n", omg.AmtToTokenStr(amtCoin.String()))
 	default:
 		fmt.Fprintf(out, "Amount : %s ( %s )\n", omg.AmtToTokenStr(amtCoin.String()), omg.PrettifyBaseAmt(amtCoin.String()))
 	}
