@@ -63,7 +63,6 @@ func sendAction(out io.Writer, auto bool, keyring, outType string, args []string
 		to          string
 		fromAddress string
 		toAddress   string
-		amount      string
 		amtCoin     sdktypes.Coin
 		err         error
 	)
@@ -101,10 +100,14 @@ func sendAction(out io.Writer, auto bool, keyring, outType string, args []string
 	if !omg.IsNormalAddress(toAddress) {
 		return fmt.Errorf("invalid address: %s", toAddress)
 	}
-	// Parse amount
-	amtCoin, err = sdktypes.ParseCoinNormalized(args[2])
+	// Normalize denom capitalization
+	normalizedAmt, err := omg.NormalizeAmountDenom(args[2])
 	if err != nil {
-		return fmt.Errorf("failed to parse %s to Coin: %s", args[2], err)
+		return fmt.Errorf("failed to normalize %s: %s", args[2], err)
+	}
+	amtCoin, err = sdktypes.ParseCoinNormalized(normalizedAmt)
+	if err != nil {
+		return fmt.Errorf("failed to parse %s to Coin: %s", normalizedAmt, err)
 	}
 	// Check balance for sender
 	balance, err := omg.GetBalance(fromAddress)
@@ -112,7 +115,10 @@ func sendAction(out io.Writer, auto bool, keyring, outType string, args []string
 		return fmt.Errorf("error querying balance for %s", from)
 	}
 	balanceToken, _ := omg.AmtToTokenDecCoin(balance.String())
-	requestAmtToken, _ := omg.AmtToTokenDecCoin(amount)
+	requestAmtToken, err := omg.AmtToTokenDecCoin(amtCoin.String())
+	if err != nil {
+		return fmt.Errorf("error converting request amount: %s", err)
+	}
 	// Display transaction summary
 	if !(auto && outType == omg.HASH) {
 		if to == toAddress {
@@ -123,14 +129,14 @@ func sendAction(out io.Writer, auto bool, keyring, outType string, args []string
 		fmt.Fprintf(out, "From              : %s [%s]\n", from, fromAddress)
 
 		fmt.Fprintf(out, "Available balance : %s %s ( %s%s )\n", balanceToken, cfg.Token, omg.PrettifyBaseAmt(balance.String()), cfg.BaseDenom)
-		fmt.Fprintf(out, "Amount requested  : %s %s ( %s%s )\n", requestAmtToken, cfg.Token, omg.PrettifyBaseAmt(amount), cfg.BaseDenom)
+		fmt.Fprintf(out, "Amount requested  : %s %s ( %s )\n", requestAmtToken, cfg.Token, omg.PrettifyBaseAmt(amtCoin.String()))
 		fmt.Fprintf(out, "----\n")
 	}
 
 	if amtCoin.IsGTE(balance) {
 		return fmt.Errorf("insufficient balance for send amount")
 	}
-	txhash, err := omg.TxSend(out, fromAddress, toAddress, amount, auto, keyring, outType)
+	txhash, err := omg.TxSend(out, fromAddress, toAddress, amtCoin.String(), auto, keyring, outType)
 	if err != nil {
 		return err
 	}
