@@ -18,7 +18,7 @@ A command line tool for common user/validator interactions with the [Onomy Proto
 
 ## Prerequisites
 
-* Go v1.18+
+* Go v1.20+
 * Locally running Onomy full node (see [Onomy Docs](https://docs.onomy.io/run-a-full-node/starting-a-full-node))
 * User-owned keys already stored in the onomy keyring
 
@@ -200,7 +200,7 @@ omg tx delegate user1 validator1
 To adjust the remainder amount, add the `--remainder [amount]` or `-r [amount]` flag. Either the token amount or the base denom can be specified.
 
 ```
-omg tx delegate user1 validator1 -r 1nom
+omg tx delegate user1 validator1 -r 1NOM
 ```
 
 > N.B. The final balance is likely to differ from the remainder set due to *auto claim rewards* being triggered by the delegation transaction.
@@ -266,7 +266,7 @@ omg tx restake [validator] [moniker] --commission --remainder 100nom
 
 Convert base denom amount to token amount
 ```
-omg convert 1000000000000000000anom   // Returns 1nom
+omg convert 1000000000000000000anom   // Returns 1NOM
 ```
 
 Convert token amount to base denom amount
@@ -276,5 +276,5 @@ omg c 1nom // Returns 1000000000000000000anom
 
 The underline separator is supported
 ```
-omg c 1_000_000_000_000_000_000anom // Returns 1nom
+omg c 1_000_000_000_000_000_000anom // Returns 1NOM
 ```
