@@ -114,13 +114,17 @@ func balancesAction(out io.Writer, allAccounts bool, less, outType string, args 
 		return err
 	}
 	if less != "" {
-		lessCoin, err := sdktypes.ParseCoinNormalized(less)
+		normalizedLess, err := omg.NormalizeAmountDenom((less))
 		if err != nil {
-			return fmt.Errorf("error parsing less amount: %s", less)
+			return fmt.Errorf("error normalizing less amount %s: %s", less, err)
+		}
+		lessCoin, err := sdktypes.ParseCoinNormalized(normalizedLess)
+		if err != nil {
+			return fmt.Errorf("error parsing less amount %s: %s", less, err)
 		}
 		finalBalance := balance.Sub(lessCoin)
-		if outType != omg.RAW {
-			fmt.Fprintf(out, "Balance (%s %s) less (%s %s):\n", omg.PrettifyBaseAmt(balance.String()), cfg.BaseDenom, omg.PrettifyBaseAmt(less), cfg.BaseDenom)
+		if outType != omg.RAW && outType != omg.TOKEN {
+			fmt.Fprintf(out, "Balance (%s %s) less (%s):\n", omg.PrettifyBaseAmt(balance.String()), cfg.BaseDenom, omg.PrettifyBaseAmt(lessCoin.String()))
 		}
 		omg.OutputAmount(out, name, address, finalBalance.String(), outType)
 	} else {
