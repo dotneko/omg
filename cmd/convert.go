@@ -52,15 +52,18 @@ func convertAction(out io.Writer, detail bool, args []string) error {
 	var (
 		amount      string
 		targetDenom string
+		err         error
 	)
 	if len(args) == 2 {
-		if args[1] == cfg.BaseDenom || args[1] == cfg.Token {
-			amount = args[0] + args[1]
-		} else {
-			return fmt.Errorf("%s is not a recognized denom", args[1])
+		amount, err = omg.NormalizeAmountDenom(args[0] + args[1])
+		if err != nil {
+			return fmt.Errorf("error normalizing %s %s: %s", args[0], args[1], err)
 		}
 	} else {
-		amount = args[0]
+		amount, err = omg.NormalizeAmountDenom(args[0])
+		if err != nil {
+			return fmt.Errorf("error normalizing %s: %s", args[0], err)
+		}
 	}
 	numstr, denom, err := omg.StrSplitAmountDenom(amount)
 	if err != nil {
