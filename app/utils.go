@@ -153,10 +153,7 @@ func PrettifyBaseAmt(amt string) string {
 	if err != nil {
 		return ""
 	}
-	_1000Coin, err := sdktypes.ParseCoinNormalized("1000" + cfg.BaseDenom)
-	if err != nil {
-		fmt.Println(err)
-	}
+	_1000Coin := sdktypes.NewCoin(cfg.BaseDenom, sdktypes.NewInt(1000))
 	if amtCoin.Amount.LT(_1000Coin.Amount) {
 		return amt
 	}

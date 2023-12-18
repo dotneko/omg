@@ -93,18 +93,19 @@ func restakeAction(out io.Writer, auto bool, keyring, outType, remainder string,
 	delegator := args[0]
 	validator := args[1]
 	var (
-		delegatorAddress string
-		valoperAddress   string
-		valoperMoniker   string
-		amount           sdktypes.Coin
-		balanceBefore    sdktypes.Coin
-		denom            string = cfg.BaseDenom
-		remainderCoin    sdktypes.Coin
-		rewards          sdktypes.Coin
-		commission       sdktypes.Coin
-		expectedBalance  sdktypes.Coin
-		wdtxhash         string
-		delegtxhash      string
+		delegatorAddress    string
+		valoperAddress      string
+		valoperMoniker      string
+		amtCoin             sdktypes.Coin
+		balanceBefore       sdktypes.Coin
+		denom               string = cfg.BaseDenom
+		normalizedRemainder string
+		remainderCoin       sdktypes.Coin
+		rewards             sdktypes.Coin
+		commission          sdktypes.Coin
+		expectedBalance     sdktypes.Coin
+		wdtxhash            string
+		delegtxhash         string
 	)
 
 	l := &omg.Accounts{}
@@ -215,7 +216,7 @@ func restakeAction(out io.Writer, auto bool, keyring, outType, remainder string,
 			fmt.Fprintf(out, ".")
 		}
 		balance, _ = omg.GetBalance(delegatorAddress)
-		if !balance.IsLT(balanceBefore) {
+		if !balance.IsEqual(balanceBefore) {
 			if outType != omg.HASH {
 				fmt.Fprintf(out, "...updated.\n")
 			}
@@ -236,39 +237,43 @@ func restakeAction(out io.Writer, auto bool, keyring, outType, remainder string,
 		return fmt.Errorf("balance not increased. Aborting auto-restake")
 	}
 	// Parse remainder
-	remainderCoin, err = sdktypes.ParseCoinNormalized(remainder)
+	normalizedRemainder, err = omg.NormalizeAmountDenom(remainder)
+	if err != nil {
+		return fmt.Errorf("cannot normalize remainder %s: %s", remainder, err)
+	}
+	remainderCoin, err = sdktypes.ParseCoinNormalized(normalizedRemainder)
 	if err != nil {
 		return err
 	}
 	if len(args) < 3 {
 		// Restake full balance less remainder if no amount specified
-		amount = balance.Sub(remainderCoin)
+		amtCoin = balance.Sub(remainderCoin)
 		expectedBalance = remainderCoin
 	} else {
 		// Parse delegation amount
-		amount, err = sdktypes.ParseCoinNormalized(args[2])
+		amtCoin, err = sdktypes.ParseCoinNormalized(args[2])
 		if err != nil {
 			return err
 		}
-		expectedBalance = balance.Sub(amount)
+		expectedBalance = balance.Sub(amtCoin)
 	}
-	if amount.IsNegative() || amount.IsZero() {
-		return fmt.Errorf("amount must be greater than zero, got %s", omg.PrettifyBaseAmt(amount.String()))
+	if amtCoin.IsNegative() || amtCoin.IsZero() {
+		return fmt.Errorf("amount must be greater than zero, got %s", omg.PrettifyBaseAmt(amtCoin.String()))
 	}
-	if !amount.IsLT(balance.Sub(remainderCoin)) {
+	if !balance.IsGTE(amtCoin.Add(remainderCoin)) {
 		return fmt.Errorf("insufficient balance after deducting remainder: %s %s", omg.PrettifyBaseAmt(expectedBalance.String()), denom)
 	}
 	if outType != omg.HASH {
 		fmt.Fprintf(out, "----\n")
 		fmt.Fprintf(out, "Delegate to Validator : %s\n", valoperAddress)
-		fmt.Fprintf(out, "Available balance     : %s ( %s )\n", omg.AmtToTokenStr(balance.String()), omg.PrettifyBaseAmt(balance.String()))
-		fmt.Fprintf(out, "Delegation amount     : %s ( %s )\n", omg.AmtToTokenStr(amount.String()), omg.PrettifyBaseAmt(amount.String()))
-		fmt.Fprintf(out, "Min remainder setting : %s ( %s )\n", omg.AmtToTokenStr(remainderCoin.String()), omg.PrettifyBaseAmt(remainderCoin.String()))
-		fmt.Fprintf(out, "Est minimum remaining : %s ( %s )\n", omg.AmtToTokenStr(expectedBalance.String()), omg.PrettifyBaseAmt(expectedBalance.String()))
+		fmt.Fprintf(out, "Available balance     : %s ( %s %s )\n", omg.AmtToTokenStr(balance.String()), omg.PrettifyBaseAmt(balance.String()), cfg.BaseDenom)
+		fmt.Fprintf(out, "Delegation amount     : %s ( %s %s )\n", omg.AmtToTokenStr(amtCoin.String()), omg.PrettifyBaseAmt(amtCoin.String()), cfg.BaseDenom)
+		fmt.Fprintf(out, "Min remainder setting : %s ( %s %s )\n", omg.AmtToTokenStr(remainderCoin.String()), omg.PrettifyBaseAmt(remainderCoin.String()), cfg.BaseDenom)
+		fmt.Fprintf(out, "Est minimum remaining : %s ( %s %s )\n", omg.AmtToTokenStr(expectedBalance.String()), omg.PrettifyBaseAmt(expectedBalance.String()), cfg.BaseDenom)
 		fmt.Fprint(out, "----\n")
 	}
 
-	delegtxhash, err = omg.TxDelegateToValidator(out, delegator, valoperAddress, amount.String(), auto, keyring, outType)
+	delegtxhash, err = omg.TxDelegateToValidator(out, delegator, valoperAddress, amtCoin.String(), auto, keyring, outType)
 	if err != nil {
 		return err
 	}
